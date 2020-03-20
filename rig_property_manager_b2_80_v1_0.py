@@ -227,7 +227,8 @@ class RIG_PROP_MAN_OT_select_collection(bpy.types.Operator):
         props = scene.RPMR_Props
                 
         if self.type == "SELECT_ACTIVE":
-            props.collection_active = bpy.data.collections[self.index]
+            #props.collection_active = bpy.data.collections[self.index]
+            print("Bruh")
             
         self.type == "DEFAULT"
         
@@ -255,10 +256,10 @@ class RIG_PROP_MAN_OT_group_operators(bpy.types.Operator):
             #Links new collection to Master_Collection
             bpy.context.scene.collection.children.link(colNew)
             
-            #Note for For Loop Bellow: For every props.collections[].collection, create a new collection and set that as the pointer to the collections[].collection so each object gets a new collection
+            #Note for For Loop Bellow: For every props.collection_strings[].collection, create a new collection and set that as the pointer to the collections[].collection so each object gets a new collection
             
             #Removes collections from all RPMR_Props.collections.collection
-            for i in enumerate(props.collections):
+            for i in enumerate(props.collection_strings):
                 i[1].collection = None
                 
         self.type == "DEFAULT"
@@ -298,7 +299,7 @@ class RIG_PROP_MAN_OT_debugging(bpy.types.Operator):
                 removedObjects = 0
                 removedCol = 0
                 
-                for i in enumerate(reversed(props.collections)):
+                for i in enumerate(reversed(props.collection_strings)):
                     if i[1].collection is not None:
                         for j in i[1].collection.objects:
                             removedObjects += 1
@@ -308,7 +309,7 @@ class RIG_PROP_MAN_OT_debugging(bpy.types.Operator):
                         #Removes collection, but not other links of it incase the user linked it
                         bpy.data.collections.remove(i[1].collection, do_unlink=True)
                         
-                    props.collections.remove(len(props.collections)-1)
+                    props.collection_strings.remove(len(props.collection_strings)-1)
                     
                 colNameActive = props.collection_active.name
                     
@@ -320,8 +321,8 @@ class RIG_PROP_MAN_OT_debugging(bpy.types.Operator):
                 self.report({'INFO'}, reportString)
             else:
                 #Removes scene.RPMR_Props.collections
-                for i in enumerate(reversed(props.collections)):
-                    props.collections.remove(len(props.collections)-1)
+                for i in enumerate(reversed(props.collection_strings)):
+                    props.collection_strings.remove(len(props.collection_strings)-1)
                 
             print(reportString)
             self.report({'INFO'}, reportString)
@@ -330,7 +331,7 @@ class RIG_PROP_MAN_OT_debugging(bpy.types.Operator):
             no_objects = 0
             no_collections = 0
             
-            for i in enumerate(props.collections):
+            for i in enumerate(props.collection_strings):
                 if i[1].object != None:
                     print_ob = str(i[1].object.name)
                 else:
@@ -345,28 +346,28 @@ class RIG_PROP_MAN_OT_debugging(bpy.types.Operator):
                 
                 print("%d. Object: %s, Collection: %s" % (i[0], print_ob, print_col))
                 
-            print("Total Objects: %d" % (len(props.collections)))
+            print("Total Objects: %d" % (len(props.collection_strings)))
             #Displays how many Iteration Objects don't have Objects or Collections
             print("No Objects: %d; No Collections: %d" % (no_objects, no_collections))
         
         #Adds 3 Backup Objects with missing Objects & Collections for testing.
         elif self.type == "TESTING":
             
-            ob_1 = props.collections.add()
+            ob_1 = props.collection_strings.add()
             ob_1.collection = bpy.data.collections[0]
             
-            ob_2 = props.collections.add()
+            ob_2 = props.collection_strings.add()
             ob_2.object = bpy.data.objects[0]
             
-            ob_3 = props.collections.add()
+            ob_3 = props.collection_strings.add()
             print("Added 3 Backup Objects.")
             
         #Copied from .remove_ops operator before.
         elif self.type == "PRINT":
-            #Gets previous length of props.collections
-            len_previous = len(props.collections)
+            #Gets previous length of props.collection_strings
+            len_previous = len(props.collection_strings)
             
-            before = list(props.collections)
+            before = list(props.collection_strings)
             
             for i in reversed(list(enumerate(before))):
                 if len(i[1].collection.objects) == 1:
@@ -390,7 +391,7 @@ class RIG_PROP_MAN_OT_ui_operators_move(bpy.types.Operator):
     def execute(self, context):
         scene = bpy.context.scene
         props = scene.RPMR_Props
-        active = props.RPMN_ULIndex
+        active = props.ULIndex_Strings
         
         #collection_active: 
         #collections:
@@ -405,55 +406,55 @@ class RIG_PROP_MAN_OT_ui_operators_move(bpy.types.Operator):
             
             if self.sub == "DEFAULT":
                 if active != 0:
-                    props.collections.move(active, active-1)
-                    props.RPMN_ULIndex-=1
+                    props.collection_strings.move(active, active-1)
+                    props.ULIndex_Strings-=1
                     
                 else:
-                    props.collections.move(0, len(props.collections)-1)
-                    props.RPMN_ULIndex  = len(props.collections)-1
+                    props.collection_strings.move(0, len(props.collection_strings)-1)
+                    props.ULIndex_Strings  = len(props.collection_strings)-1
                     
             elif self.sub == "TOP":
-                props.collections.move(active, 0)
-                props.RPMN_ULIndex = 0
+                props.collection_strings.move(active, 0)
+                props.ULIndex_Strings = 0
         
         #Moves list row DOWN
         elif self.type == "DOWN":
             
             if self.sub == "DEFAULT":
-                if active != len(props.collections)-1:
-                    props.collections.move(active, active+1)
-                    props.RPMN_ULIndex += 1
+                if active != len(props.collection_strings)-1:
+                    props.collection_strings.move(active, active+1)
+                    props.ULIndex_Strings += 1
                     
                 else:
-                    props.collections.move(len(props.collections)-1, 0)
-                    props.RPMN_ULIndex = 0
+                    props.collection_strings.move(len(props.collection_strings)-1, 0)
+                    props.ULIndex_Strings = 0
                     
             elif self.sub == "BOTTOM":
-                props.collections.move(active, len(props.collections)-1)
-                props.RPMN_ULIndex = len(props.collections)-1
+                props.collection_strings.move(active, len(props.collection_strings)-1)
+                props.ULIndex_Strings = len(props.collection_strings)-1
                 
-        elif self.type == "REMOVE" and len(props.collections) > 0:
+        elif self.type == "REMOVE" and len(props.collection_strings) > 0:
         
             if self.sub == "DEFAULT":
                 #If active is the last one
-                if active == len(props.collections)-1:
-                    props.collections.remove(props.RPMN_ULIndex)
+                if active == len(props.collection_strings)-1:
+                    props.collection_strings.remove(props.ULIndex_Strings)
                     
-                    if len(props.collections) != 0:
-                        props.RPMN_ULIndex -= 1
+                    if len(props.collection_strings) != 0:
+                        props.ULIndex_Strings -= 1
                         
                 else:
-                    props.collections.remove(props.RPMN_ULIndex)
-            #Note: This only removes the props.collections, not the actual collections or 
+                    props.collection_strings.remove(props.ULIndex_Strings)
+            #Note: This only removes the props.collection_strings, not the actual collections or 
             """
             elif self.sub == "ALL":
-                props.collections.clear()
+                props.collection_strings.clear()
             """
                 
                 
-        #Note: This only removes the props.collections, not the actual collections or objects
+        #Note: This only removes the props.collection_strings, not the actual collections or objects
         elif self.type == "REMOVE_UI_ALL":
-            props.collections.clear()
+            props.collection_strings.clear()
             
             reportString = "Removed all UI List elements. (Objects in Scene unaffected)" #% (active_object.name)
             
@@ -464,9 +465,9 @@ class RIG_PROP_MAN_OT_ui_operators_move(bpy.types.Operator):
             if active_object != None:
                 found = False
                 
-                for i in enumerate(props.collections):
+                for i in enumerate(props.collection_strings):
                     if active_object == i[1].object:
-                        props.RPMN_ULIndex = i[0]
+                        props.ULIndex_Strings = i[0]
                         found = True
                         break
                         
@@ -495,7 +496,7 @@ class RIG_PROP_MAN_UL_items(bpy.types.UIList):
         props = scene.RPMR_Props
         
         #active = props.RIA_ULIndex
-        RPMR_Collection = props.collections
+        RPMR_Collection = props.collection_strings
         
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             
@@ -503,55 +504,14 @@ class RIG_PROP_MAN_UL_items(bpy.types.UIList):
             
             if len(RPMR_Collection) > 0:
                 #obItems
+                """
                 if item.collection != None:
                     obItems = len(item.collection.objects)
                 else:
                     obItems = 0
+                """
+                row.prop(item, "name", emboss=False)
                 
-                #info = "%d. (%d)" % (index+1, obItems)
-                info = ""
-                #info = "%d. (%d)" % (index+1, obItems)
-                if props.display_index == True:
-                    if props.display_object_count == True:
-                        info += "%d. " % (index+1)
-                    else:
-                        info += "%d" % (index+1)
-                    
-                if props.display_object_count == True:
-                    info += "(%d)" % (obItems)
-                #bpy.context.scene.RPMR_Props.collections.add()
-                
-                #Displays icon of objects in list
-                if props.display_icons == True:
-                    
-                    if item.object != "EMPTY" and item.icon != "NONE":
-                        row.label(text="", icon=item.icon)
-                        
-                    else:
-                        #obIcon = objectIcon(item.object)
-                        row.label(text="", icon="QUESTION")
-                        
-                #Checks if the item has an object pointed
-                if item.object != None:
-                    row.prop(item.object, "name", text=info, emboss=False)
-                    
-                else:
-                    col = row.column()
-                    #Grays this out
-                    col.enabled = False
-                    
-                    col.prop(props, "error_object", text=info, emboss=False)
-                
-                if props.display_collections == True:
-                    if item.collection != None:
-                        row.prop(item.collection, "name", text="", icon="GROUP", emboss=False)
-                        
-                    else:
-                        col = row.column()
-                        #Grays this out
-                        col.enabled = False
-                        
-                        col.prop(props, "error_collection", text="", icon="GROUP", emboss=False)
                     
             else:
                 row.label(text="No Iterations Here")
@@ -635,92 +595,20 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel):
         if props.collection_active is not None:
             MenuName2 = props.collection_active.name
             
-        #Lock Icon
-        if props.lock_active == False:
-            row.prop(props, "lock_active", icon="UNLOCKED", text="")
-        else:
-            row.prop(props, "lock_active", icon="LOCKED", text="")
-            
-        """
-        #if props.collection_active is None:
-        if props.lock_active == False or props.collection_active is None:
-            if props.collection_active is None:
-                row.menu("RIG_PROP_MAN_MT_menu_select_collection", icon="GROUP", text=MenuName2)
-            else:
-                row.prop(props, "collection_active", text="")#, icon="GROUP", text="")
-        else:
-            row.prop(props.collection_active, "name", icon="GROUP", text="")
-        """
-            
         row.operator("rig_prop_man.collection_ops", icon="ADD", text="").type = "NEW_GROUP"
         
         #Separates for extra space between
         col.separator()
-        
-        #Duplicate Button TOP
-        if bpy.context.object != None:
-            ob_name_1 = bpy.context.object.name
-        else:
-            ob_name_1 = "No Object Selected"
-            
-        #For Loop Checks if the active Object hasn't been Backed Up before
-        ob_name_col_1 = "New Collection"
-        #iterateNew is False if the Object/Collection has been Backed Up
-        iterateNew = False
-        
-        for i in enumerate(props.collections):
-            if i[1].object == bpy.context.object:
-                if i[1].collection != None:
-                    ob_name_col_1 = i[1].collection.name
-                    #changes iterateNew to 
-                    iterateNew = True
-                    break
-                    
-        #How many objects you have selected
-        selected_objects = len(bpy.context.selected_objects)
-        
-        #Changes the text from "Object" to "Objects" if more than one object is selected
-        object_text = "Object" if selected_objects <= 1 else "Objects"
-        
-        #Changes text from "Iterate" to "Iterate New" if object wasn't found in Backup Objects
-        ob_name_iterate = "Backup %d New %s" % (selected_objects, object_text) if iterateNew == False else "Backup %d %s" % (selected_objects, object_text)
-        
-        #row = col.row(align=True)
-        
-        #row = col.row(align=True)
-        #row.operator("rig_prop_man.duplicating_ops", icon="DUPLICATE", text=ob_name_iterate).type = "DUPLICATE"
-        
-        row = col.row(align=True)
-        
-        #row.label(text="Collection: "+ob_name_col_1, icon="GROUP")
-        row.label(text="Collection: ", icon="GROUP")
-        row.label(text=ob_name_col_1)
-        
-        #if props.dropdown_1 == True:
-        row = col.row(align=True)
-        
-        row.label(text="Object: ", icon="OUTLINER_OB_MESH")
-        row.label(text=ob_name_1)
             
         #Duplicate Button BOTTOM
         
         row = col.row(align=True)
         
-        #This is how many collections have both an Object or Collection assigned to them
-        working_collections = 0
-        for i in props.collections:
-            if i.collection != None and i.object != None:
-                working_collections += 1
-                
-        row.label(text="Backup Objects (%d/%d):" % (working_collections, len(props.collections)) )
-        
-        #TOP
-        
         split = layout.row(align=False)
         col = split.column(align=True)
         
         row = col.row(align=True)
-        row.template_list("RIG_PROP_MAN_UL_items", "custom_def_list", props, "collections", props, "RPMN_ULIndex", rows=3)
+        row.template_list("RIG_PROP_MAN_UL_items", "custom_def_list", props, "collection_strings", props, "ULIndex_Strings", rows=3)
         
         #Side_Bar Operators
         col = split.column(align=True)
@@ -787,7 +675,8 @@ class RIG_PROP_MAN_PT_backup_settings(bpy.types.Panel):
         #row.label(text="Only Active Object")
         
         row = col.row(align=True)
-        row.prop(scene.RPMR_Props, "only_active", expand=True)
+        #row.prop(scene.RPMR_Props, "only_active", expand=True)
+        row.label("Tron")
         
         col.separator()
         
@@ -907,8 +796,42 @@ class RIG_PROP_MAN_preferences(bpy.types.AddonPreferences):
             row.operator("wm.url_open", text="Twitter").url = "https://twitter.com/JohnGDDR5"
             row.operator("wm.url_open", text="Artstation").url = "https://www.artstation.com/johngddr5"
 
-class RIG_PROP_MAN_collection_objects(bpy.types.PropertyGroup):
+class RIG_PROP_MAN_property(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name="", default="")
+    default: bpy.props.StringProperty(name="", default="")
+    min: bpy.props.StringProperty(name="", default="")
+    max: bpy.props.StringProperty(name="", default="")
+    soft_min: bpy.props.StringProperty(name="", default="")
+    soft_max: bpy.props.StringProperty(name="", default="")
+    use_soft_limits: bpy.props.BoolProperty(name="use_soft_limits", description="", default=False)
+    
+class RIG_PROP_MAN_properties(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="", default="")
+    property: bpy.props.CollectionProperty(name="Added Collections to List", type=RIG_PROP_MAN_property)
+
+class RIG_PROP_MAN_objects(bpy.types.PropertyGroup):
+    #name: bpy.props.StringProperty(name="", default="")
+    #collection: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.Collection)
+    object: bpy.props.PointerProperty(name="Object", type=bpy.types.Object)
+    
+class RIG_PROP_MAN_property_string_booleans(bpy.types.PropertyGroup):
+    #property_using: bpy.props.StringProperty(name="", default="")
+    #property_using: bpy.props.CollectionProperty(name="Added Collections to List", type=RIG_PROP_MAN_properties)
+    #property_using: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.RIG_PROP_MAN_properties)
+    property_using: bpy.props.BoolProperty(name="Boolean", description="Index location of this boolean is the property that is used for calculations", default=True)
+    #print("Bruh")
+
+class RIG_PROP_MAN_property_strings(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="", default="")
+    collection: bpy.props.CollectionProperty(name="Added Collections to List", type=RIG_PROP_MAN_property_string_booleans)
+    
+    #collection: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.Collection)
+    #object: bpy.props.PointerProperty(name="Object", type=bpy.types.Object)
+    
+##THIS ONE ISNT USED
+class RIG_PROP_MAN_collection_objects(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="Property Name", default="")
+    prefix: bpy.props.StringProperty(name="Prefix", default="")
     collection: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.Collection)
     object: bpy.props.PointerProperty(name="Object", type=bpy.types.Object)
     
@@ -921,16 +844,19 @@ class RIG_PROP_MAN_collection_objects(bpy.types.PropertyGroup):
 class RIG_PROP_MAN_props(bpy.types.PropertyGroup):
     #Tries to set collection_parent's default to Master Collection
     
+    collections: bpy.props.CollectionProperty(type=RIG_PROP_MAN_collection_objects)
+    
+    collection_strings: bpy.props.CollectionProperty(type=RIG_PROP_MAN_property_strings)
+    collection_properties: bpy.props.CollectionProperty(type=RIG_PROP_MAN_properties)
+    
     collection_active: bpy.props.PointerProperty(name="Collection to add Collections for Object duplicates", type=bpy.types.Collection)
     #Booleans for locking default collection of parent
     
-    lock_active: bpy.props.BoolProperty(name="Lock Collection of Active", description="When locked, you can now edit the name of the selected collection", default=False)
+    #Index for Strings_Collection
+    ULIndex_Strings: bpy.props.IntProperty(name="String List Index", description="Active UI String List Index", default= 0, min=0)
     
-    collections: bpy.props.CollectionProperty(type=RIG_PROP_MAN_collection_objects)
-    
-    RPMN_ULIndex: bpy.props.IntProperty(name="List Index", description="UI List Index", default= 0, min=0)
-    
-    clean_leave: bpy.props.IntProperty(name="List Index", description="Ammount of recent Objects to leave when cleaning.", default=2, min=0)
+    #Index for Properties Collection
+    ULIndex_Properties: bpy.props.IntProperty(name="Properties List Index", description="Active UI Properties List Index", default= 0, min=0)
     
     #Dropdown for Iterate Display
     dropdown_1: bpy.props.BoolProperty(name="Dropdown", description="Show Object of Backup Object", default=False)
@@ -947,30 +873,9 @@ class RIG_PROP_MAN_props(bpy.types.PropertyGroup):
         , items= [("OBJECT", "Object", listDesc[0], "OBJECT_DATA", 0), ("DATA", "Data", listDesc[1], "MESH_DATA", 1)]
         , description="Where to calculate and send Custom Properties from Addon", default="DATA")
     
-    
-    
-    display_collections: bpy.props.BoolProperty(name="Display Collections in List", description="Backup Object Collections where duplicates are sent.", default=True)
-    
-    display_icons: bpy.props.BoolProperty(name="Display Icons", description="Display icons of objects in the list", default=True)
-    
-    display_index: bpy.props.BoolProperty(name="Display Index", description="Display index of list row", default=True)
-    
-    display_object_count: bpy.props.BoolProperty(name="Display Backup Object Count", description="Display amount of backed up objects in Backup Collection", default=True)
-    
-    index_to_new: bpy.props.BoolProperty(name="Updates Active List Row", description="Sets Active list row to newest backup object that was added.", default=True)
-    
     debug_mode: bpy.props.BoolProperty(name="Enable Debug Operators", description="Enables a panel with Debugging operators for developers", default=True)
     
     debug_mode_arrow: bpy.props.BoolProperty(name="Debug Mode Dropdown Arrow", description="To display Debug Mode", default=True)
-    
-    #For Iterate Collection Settings and Operators
-    
-    error_object: bpy.props.StringProperty(name="Collection Not Found", description="Collection has been deleted or doesn\'t exist", default="[No Object]", options={'HIDDEN'})
-    
-    error_collection: bpy.props.StringProperty(name="Collection Not Found", description="Collection has been deleted or doesn\'t exist", default="[No Collection]", options={'HIDDEN'})
-    
-    #backup settings
-    only_active: bpy.props.BoolProperty(name="Backup Only Active Object", description="Only the active object will be backed up", default=False)
     
     
     #END
@@ -998,6 +903,16 @@ classes = (
     RIG_PROP_MAN_PT_debug_panel,
     
     RIG_PROP_MAN_preferences,
+    
+    RIG_PROP_MAN_property,
+    RIG_PROP_MAN_properties,
+    
+    RIG_PROP_MAN_objects,
+    RIG_PROP_MAN_property_string_booleans,
+    RIG_PROP_MAN_property_strings,
+    
+    
+    
     RIG_PROP_MAN_collection_objects,
     RIG_PROP_MAN_props,
 )
