@@ -703,8 +703,9 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         button.list_index = "ULIndex_Strings"
         """
         
+        #This replaces all . stuff into a single line and uses the .setAttributes() method
         properties = {"type": "ADD", "collection": "collection_strings", "list_index": "ULIndex_Strings"}
-        self.setAttributes(button, bruh)
+        self.setAttributes(button, properties)
         """
         print(button.__class__)
         print(button.__slots__)
