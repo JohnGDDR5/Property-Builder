@@ -62,6 +62,37 @@ def objectIcon(object):
 
 ##General UI Functions & Operators - TOP
 
+#This is for being able to set multiple attributes of operators in a single line, with a dictionary. In order to reduce the lines used/repeated
+def setAttributes(object, dictionary):
+    #dictionary should be attribute name and what to set its value
+    #dictionary = {"type": "ADD", }
+    for i in dictionary:
+        if hasattr(object, i):
+            setattr(object, i, dictionary[i])
+            
+    return None
+    
+class customMethods:#(bpy.types.PropertyGroup):
+    """
+    #@classmethod
+    def setAttributes(cls, dictionary):
+        #dictionary should be attribute name and what to set its value
+        #dictionary = {"type": "ADD", }
+        for i in dictionary:
+            if hasattr(cls, i):
+                setattr(cls, i, dictionary[i])
+                
+        return None
+    """
+    def setAttributes(cls, object, dictionary):
+        #dictionary should be attribute name and what to set its value
+        #dictionary = {"type": "ADD", }
+        for i in dictionary:
+            if hasattr(object, i):
+                setattr(object, i, dictionary[i])
+                
+        return None
+
 #Copies properties from one object to another. If Duplicate Object is missing properties, it will ignore it.
 def copyAttributes(object, object_duplicate):
     attributes = []
@@ -93,48 +124,48 @@ def copyAttributes(object, object_duplicate):
 def UI_Functions(collection, UI_Index, type):
     #collection is for ex. props.strings
     #UI_Index is the index of active UI list element
-    col = collection
+    
     #gets the last index of list
-    list_length = len(col)-1
+    list_length = len(collection)-1
     print("UI_Index[1]: %d" % (UI_Index) )
     #Add new item to collection
     if type == "ADD":
-        col.add()
-        UI_Index = len(col)-1
-        #if len(col)
+        collection.add()
+        UI_Index = len(collection)-1
+        #if len(collection)
     #Basically Deletes
     elif type == "REMOVE":
-        col.remove(UI_Index)
+        collection.remove(UI_Index)
         if UI_Index >= list_length:
             UI_Index -= 1
     #Moves up
     elif type == "UP":
         if UI_Index != 0:
-            col.move(UI_Index, UI_Index-1)
+            collection.move(UI_Index, UI_Index-1)
             UI_Index -= 1
         else:
-            col.move(UI_Index, list_length)
+            collection.move(UI_Index, list_length)
             UI_Index = list_length
     #Moves down
     elif type == "DOWN":
         if UI_Index != list_length:
-            col.move(UI_Index, UI_Index+1)
+            collection.move(UI_Index, UI_Index+1)
             UI_Index += 1
         else:
-            col.move(UI_Index, 0)
+            collection.move(UI_Index, 0)
             UI_Index = 0
-    #Creates a Duplicate of the object in the collection
+    #Creates a Duplicate of the object in the collectionlection
     elif type == "DUPLICATE":
         if list_length >= 0:
-            duplicate = col.add()
-            copyAttributes(col[UI_Index], duplicate)
+            duplicate = collection.add()
+            copyAttributes(collection[UI_Index], duplicate)
             
         
     print("UI_Index[1]: %d" % (UI_Index) )
     return int(UI_Index)
 
-class REGEX_SCANNER_OT_General_UIOps(bpy.types.Operator):
-    bl_idname = "regex_scanner.general_ui_ops"
+class RIG_PROP_MAN_OT_General_UIOps(bpy.types.Operator, customMethods):
+    bl_idname = "rig_prop_man.general_ui_ops"
     bl_label = "General UI List Operators/Functions"
     bl_description = "For adding, removing and moving up/down list elements"
     bl_options = {'UNDO',}
@@ -145,6 +176,17 @@ class REGEX_SCANNER_OT_General_UIOps(bpy.types.Operator):
     #mirror: bpy.props.BoolProperty(default=False)
     #sub: bpy.props.StringProperty(default="DEFAULT")
     #index: bpy.props.IntProperty(default=0, min=0)
+    
+    @classmethod
+    def setAttributes(cls, dictionary):
+        #dictionary should be attribute name and what to set its value
+        #dictionary = {"type": "ADD", }
+        for i in dictionary:
+            if hasattr(cls, i):
+                setattr(cls, i, dictionary[i])
+                
+        return None
+    
     
     #Resets default settings
     #@classmethod
@@ -488,7 +530,7 @@ class RIG_PROP_MAN_OT_ui_operators_move(bpy.types.Operator):
         return {'FINISHED'}
 
 #List drawing Class
-class RIG_PROP_MAN_UL_items(bpy.types.UIList):
+class RIG_PROP_MAN_UL_items_strings(bpy.types.UIList):
     
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         scene = bpy.context.scene
@@ -510,7 +552,45 @@ class RIG_PROP_MAN_UL_items(bpy.types.UIList):
                 else:
                     obItems = 0
                 """
-                row.prop(item, "name", emboss=False)
+                
+                row.prop(item, "name", text="", emboss=False)
+                
+                    
+            else:
+                row.label(text="No Iterations Here")
+                
+        #Theres nothing in this layout_type since it isn't intended to be used.
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+
+    def invoke(self, context, event):
+        pass
+        
+#List drawing Class
+class RIG_PROP_MAN_UL_items_properties(bpy.types.UIList):
+    
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        scene = bpy.context.scene
+        data = bpy.data
+        props = scene.RPMR_Props
+        
+        #active = props.RIA_ULIndex
+        RPMR_Collection = props.collection_strings
+        
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            
+            row = layout.row(align=True)
+            
+            if len(RPMR_Collection) > 0:
+                #obItems
+                """
+                if item.collection != None:
+                    obItems = len(item.collection.objects)
+                else:
+                    obItems = 0
+                """
+                row.prop(item, "use", text="", emboss=True)
+                row.prop(item, "name", text="", emboss=False)
                 
                     
             else:
@@ -555,7 +635,7 @@ class RIG_PROP_MAN_MT_menu_select_collection(bpy.types.Menu):
         #row.prop(self, "ui_tab", expand=True)#, text="X")
 """
     
-class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel):
+class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
     #A Custom Panel in Viewport
     bl_idname = "RIG_PROP_MAN_PT_custom_panel1"
     bl_label = "Property Manager"
@@ -564,7 +644,7 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel):
     #bl_context = "output"
     bl_category = "Prop Man"
     
-    collectionOOF: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.Collection)
+    #collectionOOF: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.Collection)
     
     # draw function
     def draw(self, context):
@@ -603,15 +683,81 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel):
         #Duplicate Button BOTTOM
         
         row = col.row(align=True)
+        row.label(text="Property Strings Names")
+        
+        #row = col.row(align=True)
         
         split = layout.row(align=False)
         col = split.column(align=True)
         
         row = col.row(align=True)
-        row.template_list("RIG_PROP_MAN_UL_items", "custom_def_list", props, "collection_strings", props, "ULIndex_Strings", rows=3)
+        row.template_list("RIG_PROP_MAN_UL_items_strings", "custom_def_list", props, "collection_strings", props, "ULIndex_Strings", rows=3)
         
         #Side_Bar Operators
         col = split.column(align=True)
+        
+        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="ADD")
+        """
+        button.type = "ADD"
+        button.collection = "collection_strings"
+        button.list_index = "ULIndex_Strings"
+        """
+        
+        properties = {"type": "ADD", "collection": "collection_strings", "list_index": "ULIndex_Strings"}
+        self.setAttributes(button, bruh)
+        """
+        print(button.__class__)
+        print(button.__slots__)
+        print(dir(button) )
+        print("self:")
+        print(self.__class__)
+        print(self.__class__.__mro__)
+        print(self.__slots__)
+        print(dir(self))
+        
+        print("Bruh has attribute: " + str( hasattr(self, "setAttributes") ))
+        """
+        
+        #button.setAttributes(bruh)
+        #setAttributes(button, bruh)
+        #self.setAttributes(button, bruh)
+        #self.setAttributes(bruh)
+        
+        button = col.operator("rig_prop_man.ui_ops_move", text="", icon="TRIA_UP")
+        button.type = "UP"
+        
+        button = col.operator("rig_prop_man.ui_ops_move", text="", icon="TRIA_DOWN")
+        button.type = "DOWN"
+        
+        button = col.operator("rig_prop_man.ui_ops_move", text="", icon="PANEL_CLOSE")
+        button.type = "REMOVE"
+        
+        
+        col = layout.column()
+        
+        
+        col.separator()
+            
+        #Duplicate Button BOTTOM
+        
+        row = col.row(align=True)
+        row.label(text="Properties")
+        
+        #row = col.row(align=True)
+        
+        split = layout.row(align=False)
+        col = split.column(align=True)
+        
+        row = col.row(align=True)
+        row.template_list("RIG_PROP_MAN_UL_items_properties", "custom_def_list", props, "collection_properties", props, "ULIndex_Properties", rows=3)
+        
+        #Side_Bar Operators
+        col = split.column(align=True)
+        
+        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="ADD")
+        button.type = "ADD"
+        button.collection = "collection_properties"
+        button.list_index = "ULIndex_Properties"
         
         button = col.operator("rig_prop_man.ui_ops_move", text="", icon="TRIA_UP")
         button.type = "UP"
@@ -676,7 +822,7 @@ class RIG_PROP_MAN_PT_backup_settings(bpy.types.Panel):
         
         row = col.row(align=True)
         #row.prop(scene.RPMR_Props, "only_active", expand=True)
-        row.label("Tron")
+        row.label(text="Tron")
         
         col.separator()
         
@@ -806,8 +952,10 @@ class RIG_PROP_MAN_property(bpy.types.PropertyGroup):
     use_soft_limits: bpy.props.BoolProperty(name="use_soft_limits", description="", default=False)
     
 class RIG_PROP_MAN_properties(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="", default="")
+    name: bpy.props.StringProperty(name="Property Description Note", default="[Property Note]"
+    , description="Name of Property that will be mirrored and generated with Prefixes. Useful for repeating Custom Property names. Ex. armature bones \"Leg.Back.L\" ")
     property: bpy.props.CollectionProperty(name="Added Collections to List", type=RIG_PROP_MAN_property)
+    use: bpy.props.BoolProperty(name="Create this property for the Property Name", description="", default=True)
 
 class RIG_PROP_MAN_objects(bpy.types.PropertyGroup):
     #name: bpy.props.StringProperty(name="", default="")
@@ -822,7 +970,8 @@ class RIG_PROP_MAN_property_string_booleans(bpy.types.PropertyGroup):
     #print("Bruh")
 
 class RIG_PROP_MAN_property_strings(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="", default="")
+    name: bpy.props.StringProperty(name="Property Name", default="[Property Name]"
+    , description="Name of Property that will be mirrored and generated with Prefixes. Useful for repeating Custom Property names. Ex. armature bones \"Leg.Back.L\" ")
     collection: bpy.props.CollectionProperty(name="Added Collections to List", type=RIG_PROP_MAN_property_string_booleans)
     
     #collection: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.Collection)
@@ -883,6 +1032,9 @@ class RIG_PROP_MAN_props(bpy.types.PropertyGroup):
     
 #Classes that are registered
 classes = (
+    #customMethods,
+    RIG_PROP_MAN_OT_General_UIOps,
+    
     RIG_PROP_MAN_OT_select_collection,
     RIG_PROP_MAN_OT_group_operators,
     #RIG_PROP_MAN_OT_duplicate,
@@ -893,7 +1045,8 @@ classes = (
     RIG_PROP_MAN_OT_ui_operators_move,
     #RIG_PROP_MAN_OT_ui_operators_select,
     
-    RIG_PROP_MAN_UL_items,
+    RIG_PROP_MAN_UL_items_strings,
+    RIG_PROP_MAN_UL_items_properties,
     #RIG_PROP_MAN_MT_menu_select_collection,
     
     RIG_PROP_MAN_PT_custom_panel1,
@@ -927,6 +1080,8 @@ def register():
     
     #bpy.types.Scene.IM_Collections = bpy.props.CollectionProperty(type=REF_IMAGEAID_Collections)
     bpy.types.Scene.RPMR_Props = bpy.props.PointerProperty(type=RIG_PROP_MAN_props)
+    
+    print(RIG_PROP_MAN_OT_General_UIOps.__mro__)
     
 def unregister():
     #ut = bpy.utils

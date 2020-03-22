@@ -28,3 +28,4 @@ bpy.context.object["Bruh0"] = 1
 bpy.context.object["_RNA_UI"] = {"Bruh0": {"min": -1.5, "max": 1.5, "soft_min": 0.5, "use_soft_limits": True} }
 
 ##Note: Soft_min and max should be between the range of the min and the max, or else "use_soft_limits" won't work, and the soft_min and max won't be assigned.
+
