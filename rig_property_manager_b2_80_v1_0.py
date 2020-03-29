@@ -276,34 +276,100 @@ class RIG_PROP_MAN_OT_select_collection(bpy.types.Operator):
         
         return {'FINISHED'}
 
-class RIG_PROP_MAN_OT_group_operators(bpy.types.Operator):
-    bl_idname = "rig_prop_man.collection_ops"
+class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
+    bl_idname = "rig_prop_man.generate_custom_props"
     bl_label = "Create a new Collection"
     bl_description = "Creates a new Parent Collection where new Backup collections for Objects are created."
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
     index: bpy.props.IntProperty(default=0, min=0)
     
+    def valueConvert(self, string):
+        value = string
+        try:
+            value = int(string)
+            return value
+        except:
+            #pass
+            try:
+                value = float(string)
+                return value
+            except:
+                pass
+        return value
+    
     def execute(self, context):
         scene = bpy.context.scene
         props = scene.RPMR_Props
         
-        #New Collection Group inside Parent Collection and set as Active Collection
-        if self.type == "NEW_GROUP":
-            
-            colNew = bpy.data.collections.new(props.group_name)
-            #Links colNew2 to collection_active
-            props.collection_active = colNew
-            
-            #Links new collection to Master_Collection
-            bpy.context.scene.collection.children.link(colNew)
-            
-            #Note for For Loop Bellow: For every props.collection_strings[].collection, create a new collection and set that as the pointer to the collections[].collection so each object gets a new collection
-            
-            #Removes collections from all RPMR_Props.collections.collection
-            for i in enumerate(props.collection_strings):
-                i[1].collection = None
+        reportString = "Done"
+        print("OOF: -1")
+        if context.object != None:
+            print("OOF: 0")
+            if len(props.collection_strings) > 0:
+                print("OOF: 1")
+                active_index = props.ULIndex_Strings
+                active_string = props.collection_strings[active_index]
+                #props.custom_prop_placement
                 
+                #Where to create the Custom Properties
+                if props.custom_prop_placement == "OBJECT":
+                    placement = context.object
+                else:
+                    placement = context.object.data
+                    
+                print("OOF: 2")
+                count_new = 0
+                count_updated = 0
+                
+                #Removes collections from all RPMR_Props.collections.collection
+                for i in enumerate(props.collection_properties):
+                    #print("Use: %s" % (str(i[1].use) ) )
+                    if i[1].use == True:
+                        #bpy.context.object["Bruh0"] = 1
+
+                        #bpy.context.object["_RNA_UI"] = {"Bruh0": {"min": -1.5, "max": 1.5, "soft_min": 0.5, "use_soft_limits": True} }
+                        name_with_prefix = str(i[1].prefix) + active_string.name
+                        
+                        if name_with_prefix not in placement:
+                            #placement[name_with_prefix] = i[1].value
+                            placement[name_with_prefix] = self.valueConvert(i[1].value)
+                            new_attribute = placement[name_with_prefix]
+                            
+                            count_new += 1
+                            
+                        else:
+                            print("Attribute Exists: %s" % (name_with_prefix) )
+                            count_updated += 1
+                            
+                        new_dict = {name_with_prefix: {} }
+                        
+                        #attribute_dict = {""}
+                        
+                        #new_dict[name_with_prefix]["value"] = i[1].value
+                        new_dict[name_with_prefix]["default"] = i[1].default
+                        
+                        new_dict[name_with_prefix]["min"] = i[1].min
+                        new_dict[name_with_prefix]["max"] = i[1].max
+                        new_dict[name_with_prefix]["soft_min"] = i[1].soft_min
+                        new_dict[name_with_prefix]["soft_max"] = i[1].soft_max
+                        
+                        new_dict[name_with_prefix]["description"] = i[1].description
+                        new_dict[name_with_prefix]["use_soft_limits"] = i[1].use_soft_limits
+                        
+                        placement["_RNA_UI"] = new_dict
+                        
+                #Clears all the values, so it stays like before
+                #placement["_RNA_UI"].clear()
+                reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (count_new, count_updated)
+                    
+            else:
+                reportString = "No Active Object"
+        else:
+            reportString = "No Object selected"
+            
+        self.report({'INFO'}, reportString)
+        
         self.type == "DEFAULT"
         
         return {'FINISHED'}
@@ -618,7 +684,7 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         col.separator()
         
         row = col.row(align=True)
-        row.label(text="Parent Collection:")
+        row.label(text="Generate:")
         
         row = col.row(align=True)
         
@@ -627,7 +693,7 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         if props.collection_active is not None:
             MenuName2 = props.collection_active.name
             
-        row.operator("rig_prop_man.collection_ops", icon="ADD", text="").type = "NEW_GROUP"
+        row.operator("rig_prop_man.generate_custom_props", icon="ADD", text="Custom Props for Active Name")
         
         #Separates for extra space between
         col.separator()
@@ -713,8 +779,8 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         
 
 #This is a subpanel
-class RIG_PROP_MAN_PT_display_settings(bpy.types.Panel, customMethods):
-    bl_label = "Display Settings"
+class RIG_PROP_MAN_PT_property(bpy.types.Panel, customMethods):
+    bl_label = "Property"
     bl_parent_id = "RIG_PROP_MAN_PT_custom_panel1"
     bl_space_type = "VIEW_3D"
     bl_region_type = 'UI'
@@ -745,18 +811,25 @@ class RIG_PROP_MAN_PT_display_settings(bpy.types.Panel, customMethods):
             row.prop(active_prop, "prefix", text="Prefix")
             
             row = col.row(align=True)
-            row.prop(active_prop, "default", text="Value")
+            row.prop(active_prop, "value", text="Value")
+            
+            row = col.row(align=True)
+            row.prop(active_prop, "default", text="Default")
             
             row = col.row(align=True)
             row.prop(active_prop, "min", text="Min")
             row.prop(active_prop, "max", text="Max")
             
             row = col.row(align=True)
-            row.prop(active_prop, "soft_min", text="Soft Min")
+            row.prop(active_prop, "soft_min", text="Soft Min", expand=False, emboss=True)
             row.prop(active_prop, "soft_max", text="Soft Max")
             
             row = col.row(align=True)
             row.prop(active_prop, "use_soft_limits", text="Use Soft Limits")
+            
+            row = col.row(align=True)
+            row.prop(active_prop, "description", text="Description")
+            
             
         else:
             row.enabled = False
@@ -909,11 +982,12 @@ class RIG_PROP_MAN_preferences(bpy.types.AddonPreferences):
 #class RIG_PROP_MAN_property(bpy.types.PropertyGroup):
 class RIG_PROP_MAN_property:
     prefix: bpy.props.StringProperty(name="Prefix", default="")
+    value: bpy.props.StringProperty(name="Value", default="")
     default: bpy.props.StringProperty(name="Default Value", default="")
-    min: bpy.props.StringProperty(name="Min", default="")
-    max: bpy.props.StringProperty(name="Max", default="")
-    soft_min: bpy.props.StringProperty(name="Soft Min", default="")
-    soft_max: bpy.props.StringProperty(name="Soft Max", default="")
+    min: bpy.props.FloatProperty(name="Min", description="", default= -10000)#, min=0)
+    max: bpy.props.FloatProperty(name="Max", description="", default= 10000)#, min=0)
+    soft_min: bpy.props.FloatProperty(name="Soft Min", description="", default= -10000)#, min=0)
+    soft_max: bpy.props.FloatProperty(name="Soft Max", description="", default= 10000)#, min=0)
     description: bpy.props.StringProperty(name="Description", default="")
     use_soft_limits: bpy.props.BoolProperty(name="Use Soft Limits", description="", default=False)
     
@@ -992,7 +1066,7 @@ classes = (
     RIG_PROP_MAN_OT_General_UIOps,
     
     RIG_PROP_MAN_OT_select_collection,
-    RIG_PROP_MAN_OT_group_operators,
+    RIG_PROP_MAN_OT_generate_custom_props,
     #RIG_PROP_MAN_OT_duplicate,
     #RIG_PROP_MAN_OT_cleaning,
     #RIG_PROP_MAN_OT_removing,
@@ -1006,7 +1080,7 @@ classes = (
     #RIG_PROP_MAN_MT_menu_select_collection,
     
     RIG_PROP_MAN_PT_custom_panel1,
-    RIG_PROP_MAN_PT_display_settings,
+    RIG_PROP_MAN_PT_property,
     RIG_PROP_MAN_PT_backup_settings,
     RIG_PROP_MAN_PT_cleaning,
     RIG_PROP_MAN_PT_debug_panel,
