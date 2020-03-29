@@ -84,7 +84,7 @@ class customMethods:#(bpy.types.PropertyGroup):
                 
         return None
     """
-    def setAttributes(cls, object, dictionary):
+    def setAttributes(self, object, dictionary):
         #dictionary should be attribute name and what to set its value
         #dictionary = {"type": "ADD", }
         for i in dictionary:
@@ -545,17 +545,8 @@ class RIG_PROP_MAN_UL_items_strings(bpy.types.UIList):
             row = layout.row(align=True)
             
             if len(RPMR_Collection) > 0:
-                #obItems
-                """
-                if item.collection != None:
-                    obItems = len(item.collection.objects)
-                else:
-                    obItems = 0
-                """
-                
                 row.prop(item, "name", text="", emboss=False)
                 
-                    
             else:
                 row.label(text="No Iterations Here")
                 
@@ -582,17 +573,9 @@ class RIG_PROP_MAN_UL_items_properties(bpy.types.UIList):
             row = layout.row(align=True)
             
             if len(RPMR_Collection) > 0:
-                #obItems
-                """
-                if item.collection != None:
-                    obItems = len(item.collection.objects)
-                else:
-                    obItems = 0
-                """
                 row.prop(item, "use", text="", emboss=True)
                 row.prop(item, "name", text="", emboss=False)
                 
-                    
             else:
                 row.label(text="No Iterations Here")
                 
@@ -602,38 +585,7 @@ class RIG_PROP_MAN_UL_items_properties(bpy.types.UIList):
 
     def invoke(self, context, event):
         pass
-        
-"""
-class RIG_PROP_MAN_MT_menu_select_collection(bpy.types.Menu):
-    bl_idname = "RIG_PROP_MAN_MT_menu_select_collection"
-    bl_label = "Select a Collection for Active"
-    bl_description = "Select an Parent Collection to create collections to send object iteration duplicates"
-    
-    # here you specify how they are drawn
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        data = bpy.data
-        props = scene.RPMR_Props
-        
-        col = layout.column()
-        
-        row = col.row(align=True)
-        
-        if len(bpy.data.collections) > 0:
-            for i in enumerate(bpy.data.collections):
-                button = row.operator("rig_prop_man.select_collection", text=i[1].name)
-                button.type = "SELECT_ACTIVE"
-                button.index = i[0]
-                
-                row = col.row(align=True)
-        else:
-            #NEW_COLLECTION
-            button = row.operator("rig_prop_man.collection_ops", text="Add Collection", icon = "ADD")
-            button.type = "NEW_COLLECTION"
-            #bpy.data.collections.new("Boi") 
-        #row.prop(self, "ui_tab", expand=True)#, text="X")
-"""
+
     
 class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
     #A Custom Panel in Viewport
@@ -696,42 +648,24 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         #Side_Bar Operators
         col = split.column(align=True)
         
+        properties = {"collection": "collection_strings", "list_index": "ULIndex_Strings"}
+        
         button = col.operator("rig_prop_man.general_ui_ops", text="", icon="ADD")
-        """
-        button.type = "ADD"
-        button.collection = "collection_strings"
-        button.list_index = "ULIndex_Strings"
-        """
-        
-        #This replaces all . stuff into a single line and uses the .setAttributes() method
-        properties = {"type": "ADD", "collection": "collection_strings", "list_index": "ULIndex_Strings"}
         self.setAttributes(button, properties)
-        """
-        print(button.__class__)
-        print(button.__slots__)
-        print(dir(button) )
-        print("self:")
-        print(self.__class__)
-        print(self.__class__.__mro__)
-        print(self.__slots__)
-        print(dir(self))
+        button.type = "ADD"
         
-        print("Bruh has attribute: " + str( hasattr(self, "setAttributes") ))
-        """
-        
-        #button.setAttributes(bruh)
-        #setAttributes(button, bruh)
-        #self.setAttributes(button, bruh)
-        #self.setAttributes(bruh)
-        
-        button = col.operator("rig_prop_man.ui_ops_move", text="", icon="TRIA_UP")
+        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="TRIA_UP")
+        self.setAttributes(button, properties)
         button.type = "UP"
         
-        button = col.operator("rig_prop_man.ui_ops_move", text="", icon="TRIA_DOWN")
+        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="TRIA_DOWN")
+        self.setAttributes(button, properties)
         button.type = "DOWN"
         
-        button = col.operator("rig_prop_man.ui_ops_move", text="", icon="PANEL_CLOSE")
+        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="PANEL_CLOSE")
+        self.setAttributes(button, properties)
         button.type = "REMOVE"
+        
         
         
         col = layout.column()
@@ -755,18 +689,22 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         #Side_Bar Operators
         col = split.column(align=True)
         
-        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="ADD")
-        button.type = "ADD"
-        button.collection = "collection_properties"
-        button.list_index = "ULIndex_Properties"
+        properties = {"collection": "collection_properties", "list_index": "ULIndex_Properties"}
         
-        button = col.operator("rig_prop_man.ui_ops_move", text="", icon="TRIA_UP")
+        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="ADD")
+        self.setAttributes(button, properties)
+        button.type = "ADD"
+        
+        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="TRIA_UP")
+        self.setAttributes(button, properties)
         button.type = "UP"
         
-        button = col.operator("rig_prop_man.ui_ops_move", text="", icon="TRIA_DOWN")
+        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="TRIA_DOWN")
+        self.setAttributes(button, properties)
         button.type = "DOWN"
         
-        button = col.operator("rig_prop_man.ui_ops_move", text="", icon="PANEL_CLOSE")
+        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="PANEL_CLOSE")
+        self.setAttributes(button, properties)
         button.type = "REMOVE"
         
         #button = col.operator("rig_prop_man.ui_ops_select", text="", icon="RESTRICT_SELECT_OFF")
@@ -775,7 +713,7 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         
 
 #This is a subpanel
-class RIG_PROP_MAN_PT_display_settings(bpy.types.Panel):
+class RIG_PROP_MAN_PT_display_settings(bpy.types.Panel, customMethods):
     bl_label = "Display Settings"
     bl_parent_id = "RIG_PROP_MAN_PT_custom_panel1"
     bl_space_type = "VIEW_3D"
@@ -790,13 +728,38 @@ class RIG_PROP_MAN_PT_display_settings(bpy.types.Panel):
         scene = context.scene
         props = scene.RPMR_Props
         
+        active_index = props.ULIndex_Properties
         #collection_active: 
         #collections:
-        
         col = layout.column()
         
-        row = col.row(align=True)
-        row.label(text="Bruh Momenta")
+        if len(props.collection_properties) > 0:
+            
+            row = col.row(align=True)
+            row.label(text="Bruh Momenta")
+            
+            
+            active_prop = props.collection_properties[active_index]
+            
+            row = col.row(align=True)
+            row.prop(active_prop, "prefix", text="Prefix")
+            
+            row = col.row(align=True)
+            row.prop(active_prop, "default", text="Value")
+            
+            row = col.row(align=True)
+            row.prop(active_prop, "min", text="Min")
+            row.prop(active_prop, "max", text="Max")
+            
+            row = col.row(align=True)
+            row.prop(active_prop, "soft_min", text="Soft Min")
+            row.prop(active_prop, "soft_max", text="Soft Max")
+            
+            row = col.row(align=True)
+            row.prop(active_prop, "use_soft_limits", text="Use Soft Limits")
+            
+        else:
+            row.enabled = False
         
 #This is a subpanel
 class RIG_PROP_MAN_PT_backup_settings(bpy.types.Panel):
@@ -943,37 +906,29 @@ class RIG_PROP_MAN_preferences(bpy.types.AddonPreferences):
             row.operator("wm.url_open", text="Twitter").url = "https://twitter.com/JohnGDDR5"
             row.operator("wm.url_open", text="Artstation").url = "https://www.artstation.com/johngddr5"
 
-class RIG_PROP_MAN_property(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="", default="")
-    default: bpy.props.StringProperty(name="", default="")
-    min: bpy.props.StringProperty(name="", default="")
-    max: bpy.props.StringProperty(name="", default="")
-    soft_min: bpy.props.StringProperty(name="", default="")
-    soft_max: bpy.props.StringProperty(name="", default="")
-    use_soft_limits: bpy.props.BoolProperty(name="use_soft_limits", description="", default=False)
+#class RIG_PROP_MAN_property(bpy.types.PropertyGroup):
+class RIG_PROP_MAN_property:
+    prefix: bpy.props.StringProperty(name="Prefix", default="")
+    default: bpy.props.StringProperty(name="Default Value", default="")
+    min: bpy.props.StringProperty(name="Min", default="")
+    max: bpy.props.StringProperty(name="Max", default="")
+    soft_min: bpy.props.StringProperty(name="Soft Min", default="")
+    soft_max: bpy.props.StringProperty(name="Soft Max", default="")
+    description: bpy.props.StringProperty(name="Description", default="")
+    use_soft_limits: bpy.props.BoolProperty(name="Use Soft Limits", description="", default=False)
     
-class RIG_PROP_MAN_properties(bpy.types.PropertyGroup):
+
+class RIG_PROP_MAN_properties(bpy.types.PropertyGroup, RIG_PROP_MAN_property):
     name: bpy.props.StringProperty(name="Property Description Note", default="[Property Note]"
     , description="Name of Property that will be mirrored and generated with Prefixes. Useful for repeating Custom Property names. Ex. armature bones \"Leg.Back.L\" ")
-    property: bpy.props.CollectionProperty(name="Added Collections to List", type=RIG_PROP_MAN_property)
-    use: bpy.props.BoolProperty(name="Create this property for the Property Name", description="", default=True)
-
-class RIG_PROP_MAN_objects(bpy.types.PropertyGroup):
-    #name: bpy.props.StringProperty(name="", default="")
-    #collection: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.Collection)
-    object: bpy.props.PointerProperty(name="Object", type=bpy.types.Object)
+    #property: bpy.props.CollectionProperty(name="Added Collections to List", type=RIG_PROP_MAN_property)
     
-class RIG_PROP_MAN_property_string_booleans(bpy.types.PropertyGroup):
-    #property_using: bpy.props.StringProperty(name="", default="")
-    #property_using: bpy.props.CollectionProperty(name="Added Collections to List", type=RIG_PROP_MAN_properties)
-    #property_using: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.RIG_PROP_MAN_properties)
-    property_using: bpy.props.BoolProperty(name="Boolean", description="Index location of this boolean is the property that is used for calculations", default=True)
-    #print("Bruh")
+    use: bpy.props.BoolProperty(name="Create this property for the Property Name", description="", default=True)
 
 class RIG_PROP_MAN_property_strings(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name="Property Name", default="[Property Name]"
     , description="Name of Property that will be mirrored and generated with Prefixes. Useful for repeating Custom Property names. Ex. armature bones \"Leg.Back.L\" ")
-    collection: bpy.props.CollectionProperty(name="Added Collections to List", type=RIG_PROP_MAN_property_string_booleans)
+    #collection: bpy.props.CollectionProperty(name="Added Collections to List", type=RIG_PROP_MAN_property_string_booleans)
     
     #collection: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.Collection)
     #object: bpy.props.PointerProperty(name="Object", type=bpy.types.Object)
@@ -1016,7 +971,7 @@ class RIG_PROP_MAN_props(bpy.types.PropertyGroup):
     group_name: bpy.props.StringProperty(name="New Collection Name", description="Name used when creating a new collection for Active", default="Group")
     
     listDesc =  ["Displays List in order of how many duplicates each object has", "Displays List in the order they were created", "Displays List in order user specified"]
-    listDesc2 =  ["List displays in Descending Order", "List displays in Ascending Order"]
+    #listDesc2 =  ["List displays in Descending Order", "List displays in Ascending Order"]
     
     ##NEW CRAP
     custom_prop_placement: bpy.props.EnumProperty(name="Custom Property Placement"
@@ -1058,13 +1013,11 @@ classes = (
     
     RIG_PROP_MAN_preferences,
     
-    RIG_PROP_MAN_property,
+    #RIG_PROP_MAN_property,
     RIG_PROP_MAN_properties,
     
-    RIG_PROP_MAN_objects,
-    RIG_PROP_MAN_property_string_booleans,
-    RIG_PROP_MAN_property_strings,
     
+    RIG_PROP_MAN_property_strings,
     
     
     RIG_PROP_MAN_collection_objects,
