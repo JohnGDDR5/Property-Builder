@@ -357,6 +357,27 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
             except:
                 pass
         return value
+        
+    def evalSafety(self, string):
+        #bpy.context.object.data.bones.active.bl_rna.__module__
+        #Returns 'bpy_types' or 'bpy.types'
+        should_have = ["bpy_types", "bl.types"]
+        try:
+            object = eval(string)
+        except:
+            object = None
+        
+        if hasattr(object, "bl_rna") == True:
+            if getattr(object.bl_rna, "__module__") in should_have:
+                print("Successful evaluation of path: \" %s \"" % (string) )
+                pass
+            else:
+                object = None
+                print("path \" %s \" isn\"t or already in \"__module__\" from \"bpy_types\" " % (string) )
+        else:
+            print("path \" %s \" can't be evaluated or already in \"bl_rna\" from \"bpy_types\" " % (string) )
+            
+        return object
     
     def execute(self, context):
         scene = bpy.context.scene
@@ -375,30 +396,42 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
             "use_soft_limits",
             ]
         
-        if context.object != None:
-            print("OOF: 0")
-            if len(props.collection_strings) > 0:
-                print("OOF: 1")
-                active_index = props.ULIndex_Strings
-                active_string = props.collection_strings[active_index]
-                #props.custom_prop_placement
+        if len(props.collection_strings) > 0:
+            #"""
+            active_index = props.ULIndex_Strings
+            active_string = props.collection_strings[active_index]
+            #"""
+            #Where to create the Custom Properties
+            if props.custom_prop_placement == "OBJECT":
+                placement = context.object
+            elif props.custom_prop_placement == "DATA":
+                placement = context.object.data
+            elif props.custom_prop_placement == "SCENE":
+                placement = context.scene
+            elif props.custom_prop_placement == "WORLD":
+                placement = context.scene.world
+            else:
+                #placement = props.custom_path
+                placement = self.evalSafety(props.custom_path)
                 
-                #Where to create the Custom Properties
-                if props.custom_prop_placement == "OBJECT":
-                    placement = context.object
+                
+            if placement != None:
+                """
+                if self.type == "DEFAULT":
+                    active_index = props.ULIndex_Strings
+                    active_string = props.collection_strings[active_index]
                 else:
-                    placement = context.object.data
                     
+                for h in 
+                """
                 print("OOF: 2")
                 count_new = 0
                 count_updated = 0
                 
                 #goes through every custom Property to generate
                 for i in enumerate(props.collection_properties):
-                    #print("Use: %s" % (str(i[1].use) ) )
+                
                     if i[1].use == True:
-                        #bpy.context.object["Bruh0"] = 1
-
                         #bpy.context.object["_RNA_UI"] = {"Bruh0": {"min": -1.5, "max": 1.5, "soft_min": 0.5, "use_soft_limits": True} }
                         name_with_prefix = str(i[1].prefix) + active_string.name
                         
@@ -416,20 +449,10 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
                         if placement[name_with_prefix].__class__.__name__ != 'IDPropertyGroup':
                             new_dict = {name_with_prefix: {} }
                             
+                            #This is where all the generated attributes are placed to be created with "_RNA_UI"
                             for j in attributes:
                                 new_dict[name_with_prefix][j] = getattr(i[1], j)
-                            """
-                            new_dict[name_with_prefix]["default"] = i[1].default
-                            
-                            new_dict[name_with_prefix]["min"] = i[1].min
-                            new_dict[name_with_prefix]["max"] = i[1].max
-                            new_dict[name_with_prefix]["soft_min"] = i[1].soft_min
-                            new_dict[name_with_prefix]["soft_max"] = i[1].soft_max
-                            
-                            new_dict[name_with_prefix]["description"] = i[1].description
-                            new_dict[name_with_prefix]["use_soft_limits"] = i[1].use_soft_limits
-                            """
-                            
+                                
                             placement["_RNA_UI"] = new_dict
                         else:
                             print("Was a dictionary: %s" % (name_with_prefix) )
@@ -438,11 +461,21 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
                 #Clears all the values, so it stays like before
                 #placement["_RNA_UI"].clear()
                 reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (count_new, count_updated)
-                    
+                
+            #Just error statements
             else:
-                reportString = "No Active Object"
+                if props.custom_prop_placement == "OBJECT":
+                    reportString = "No Object selected"
+                elif props.custom_prop_placement == "DATA":
+                    reportString = "No Object selected"
+                elif props.custom_prop_placement == "SCENE":
+                    reportString = "No Scene Found"
+                elif props.custom_prop_placement == "WORLD":
+                    reportString = "No World Found"
+                else:
+                    reportString = "Couldn\'t evaluate custom path. Check Console."
         else:
-            reportString = "No Object selected"
+            reportString = "No Active Property Object"
             
         self.report({'INFO'}, reportString)
         
@@ -532,8 +565,27 @@ class RIG_PROP_MAN_UL_items_properties(bpy.types.UIList):
     def invoke(self, context, event):
         pass
 
-class RIG_PROP_MAN_MT_dropdown_menu_ui(bpy.types.Menu):
-    bl_idname = "RIG_PROP_MAN_MT_dropdown_menu_ui"
+class RIG_PROP_MAN_MT_dropdown_menu_ui_generate(bpy.types.Menu):
+    bl_idname = "RIG_PROP_MAN_MT_dropdown_menu_ui_generate"
+    bl_label = "Extra UI Functions & Operators"
+    bl_description = "Extra functions for generating Custom Properties"
+    
+    # here you specify how they are drawn
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        data = bpy.data
+        props = scene.RPMR_Props
+        
+        col = layout.column()
+        
+        #row = col.row(align=True)
+        button = col.operator("rig_prop_man.generate_custom_props", icon="ADD", text="For All String Names")
+        button.type = "ALL"
+        
+
+class RIG_PROP_MAN_MT_dropdown_menu_ui_properties(bpy.types.Menu):
+    bl_idname = "RIG_PROP_MAN_MT_dropdown_menu_ui_properties"
     bl_label = "Extra UI Functions & Operators"
     bl_description = "Copy/Paste and Duplicate functions"
     
@@ -587,16 +639,22 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         row.label(text="Custom Property Placement:")
         
         row = col.row(align=True)
-        row.prop(props, "custom_prop_placement", expand=True)
+        row.prop(props, "custom_prop_placement", text="", expand=False)
+        
+        if props.custom_prop_placement == "CUSTOM":
+            row = col.row(align=True)
+            row.prop(props, "custom_path", expand=True, text="Path")
         
         col.separator()
         
         row = col.row(align=True)
-        row.label(text="Generate:")
+        row.label(text="Generate Properties:")
         
         row = col.row(align=True)
             
-        row.operator("rig_prop_man.generate_custom_props", icon="ADD", text="Custom Props for Active Name")
+        row.operator("rig_prop_man.generate_custom_props", icon="ADD", text="For Active String Name")
+        #Copy/Paste Menu
+        row.menu("RIG_PROP_MAN_MT_dropdown_menu_ui_generate", icon="DOWNARROW_HLT", text="")
         
         #Separates for extra space between
         col.separator()
@@ -604,7 +662,7 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         #Duplicate Button BOTTOM
         
         row = col.row(align=True)
-        row.label(text="Property Strings Names")
+        row.label(text="Property Strings Names: %d" % (len(props.collection_strings) ) )
         
         #row = col.row(align=True)
         
@@ -645,7 +703,7 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         #Duplicate Button BOTTOM
         
         row = col.row(align=True)
-        row.label(text="Properties")
+        row.label(text="Properties: %s" % (len(props.collection_properties) ))
         
         #row = col.row(align=True)
         
@@ -677,7 +735,7 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         button.type = "REMOVE"
         
         #Copy/Paste Menu
-        col.menu("RIG_PROP_MAN_MT_dropdown_menu_ui", icon="DOWNARROW_HLT", text="")
+        col.menu("RIG_PROP_MAN_MT_dropdown_menu_ui_properties", icon="DOWNARROW_HLT", text="")
         
         """
         #Copy/Paste
@@ -748,7 +806,15 @@ class RIG_PROP_MAN_PT_property(bpy.types.Panel, customMethods):
             
             
         else:
-            row.enabled = False
+            row = col.row(align=True)
+            
+            properties = {"collection": "collection_properties", "list_index": "ULIndex_Properties"}
+            
+            button = col.operator("rig_prop_man.general_ui_ops", text="Add Properties to edit", icon="ADD")
+            self.setAttributes(button, properties)
+            button.type = "ADD"
+            #row.label(text="Add Properties to edit")
+            #row.enabled = False
             
 
 
@@ -791,12 +857,12 @@ class RIG_PROP_MAN_property:
     prefix: bpy.props.StringProperty(name="Prefix", default="")
     value: bpy.props.StringProperty(name="Value", default="")
     default: bpy.props.StringProperty(name="Default Value", default="")
-    min: bpy.props.FloatProperty(name="Min", description="", default= -10000)#, min=0)
-    max: bpy.props.FloatProperty(name="Max", description="", default= 10000)#, min=0)
-    soft_min: bpy.props.FloatProperty(name="Soft Min", description="", default= -10000)#, min=0)
-    soft_max: bpy.props.FloatProperty(name="Soft Max", description="", default= 10000)#, min=0)
-    description: bpy.props.StringProperty(name="Description", default="")
-    use_soft_limits: bpy.props.BoolProperty(name="Use Soft Limits", description="", default=False)
+    min: bpy.props.FloatProperty(name="Min", description="Min", default= -10000)#, min=0)
+    max: bpy.props.FloatProperty(name="Max", description="Max", default= 10000)#, min=0)
+    soft_min: bpy.props.FloatProperty(name="Soft Min", description="Soft Min", default= -10000)#, min=0)
+    soft_max: bpy.props.FloatProperty(name="Soft Max", description="Soft Max", default= 10000)#, min=0)
+    description: bpy.props.StringProperty(name="Description", description="Description of Custom Property", default="")
+    use_soft_limits: bpy.props.BoolProperty(name="Use Soft Limits", description="Use Soft Limits", default=False)
     
 
 class RIG_PROP_MAN_properties(bpy.types.PropertyGroup, RIG_PROP_MAN_property):
@@ -865,6 +931,8 @@ class RIG_PROP_MAN_props(bpy.types.PropertyGroup):
         ("CUSTOM", "Custom Path", listDesc[4], "FILE_TEXT", 4),
         ]
         , description="Where to calculate and send Custom Properties from Addon", default="DATA")
+        
+    custom_path: bpy.props.StringProperty(name="Property Name", default="bpy.context.object")
     
     
     #END
@@ -887,7 +955,9 @@ classes = (
     
     RIG_PROP_MAN_UL_items_strings,
     RIG_PROP_MAN_UL_items_properties,
-    RIG_PROP_MAN_MT_dropdown_menu_ui,
+    
+    RIG_PROP_MAN_MT_dropdown_menu_ui_generate,
+    RIG_PROP_MAN_MT_dropdown_menu_ui_properties,
     
     RIG_PROP_MAN_PT_custom_panel1,
     RIG_PROP_MAN_PT_property,
