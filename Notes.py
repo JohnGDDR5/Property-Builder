@@ -68,6 +68,21 @@ Returns name 'IDPropertyGroup'
 type(bpy.context.object["Bruh0"]) ##Bruh0 is an integer, not dict
 Returns <class 'float'>
 
+bpy.context.object["Bruh6"] = [0,0,0]
+
+bpy.context.object["Bruh6"].__class__
+Returns <class 'IDPropertyArray'>
+
+bpy.context.object["Bruh6"].__class__.__name__
+Returns 'IDPropertyArray'
+
+bpy.context.object["Bruh6"].to_list()
+Returns [0,0,0]
+
+##NOTE: Custom Properties can only be int, float, or dictionaries, not props. ex, not a bpy.props.FloatVectorProperty()
+bpy.props.FloatVectorProperty(name="", description="", default=(0.0, 0.0, 0.0), min=sys.float_info.min, max=sys.float_info.max, soft_min=sys.float_info.min, soft_max=sys.float_info.max, step=3, precision=2, options={'ANIMATABLE'}, tags={}, subtype='NONE', unit='NONE', size=3, update=None, get=None, set=None)
+
+bpy.props.FloatVectorProperty(name="color", description="", default=(0.0, 0.0, 0.0), min=0, max=0, step=3, precision=2, subtype='COLOR', size=3)
 
 ##Prints matrices of object
 def oof():

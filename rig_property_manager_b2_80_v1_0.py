@@ -279,8 +279,18 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
     type: bpy.props.StringProperty(default="DEFAULT")
     index: bpy.props.IntProperty(default=0, min=0)
     
+    #class variables to count how many new Custom Properties were made
     count_new = 0
     count_updated = 0
+    
+    #Temporary Class variable where Custom Properties are set
+    placement = None
+    
+    @classmethod
+    def resetDefaults(cls):
+        cls.type = "DEFAULT"
+        cls.index = 0
+        return None
     
     @classmethod
     def getCount(cls):
@@ -288,8 +298,6 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
         
     @classmethod
     def setCount(cls, count_new=None, count_updated=None):
-        #cls.count_new = count_new if count_new != None else pass
-        #cls.count_updated = count_updated if count_updated != None else pass
         if count_new != None:
             cls.count_new = count_new 
         if count_updated != None:
@@ -298,8 +306,6 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
     
     @classmethod
     def addCount(cls, count_new=None, count_updated=None):
-        #cls.count_new = count_new if count_new != None else pass
-        #cls.count_updated = count_updated if count_updated != None else pass
         if count_new != None:
             cls.count_new += count_new 
         if count_updated != None:
@@ -310,9 +316,19 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
     def resetCount(cls):
         cls.count_new = 0
         cls.count_updated = 0
+        cls.placement = None
+        return None
+        
+    @classmethod
+    def getPlacement(cls):
+        return cls.placement
+        
+    @classmethod
+    def setPlacement(cls, placement=None):
+        cls.placement = placement
         return None
     
-    #list("[0 , 0, 0]".strip("[] ").replace(" ", "").split(","))
+    #checks if String can be converted into a List for Blender Custom Property. Values must be of the same type
     def checkIfList(self, string):
         #removes "\"" and "[" and "]", then splits from "," to a list
         string_list = string.strip("[] ").replace(" ", "").replace("\"", "").split(",")
@@ -362,6 +378,7 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
         else:
             return None
     
+    #Tries to convert Strings into int, floats, dict, or list for Custom Properties
     def valueConvert(self, string):
         value = string
         #int
@@ -369,28 +386,30 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
             value = int(string)
             return value
         except:
-            #pass
-            #float
-            try:
-                value = float(string)
-                return value
-            except:
-                pass
-            #dictionary
-            try:
-                value = dict(string)
-                return value
-            except:
-                pass
-            #list
-            try:
-                #value = list(string)
-                value = self.checkIfList(string)
-                return value
-            except:
-                pass
+            pass
+        #float
+        try:
+            value = float(string)
+            return value
+        except:
+            pass
+        #dictionary
+        try:
+            value = dict(string)
+            return value
+        except:
+            pass
+        #list
+        try:
+            #value = list(string)
+            value = self.checkIfList(string)
+            return value
+        except:
+            pass
+            
         return value
         
+    #To prevent unsafe evaluations and also to be able to add Custom Property to objects with .bl_rna
     def evalSafety(self, string):
         #bpy.context.object.data.bones.active.bl_rna.__module__
         #Returns 'bpy_types' or 'bpy.types'
@@ -430,44 +449,33 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
             ]
         
         if len(props.collection_strings) > 0:
-            """
-            active_index = props.ULIndex_Strings
-            active_string = props.collection_strings[active_index]
-            """
+        
             #Where to create the Custom Properties
             if props.custom_prop_placement == "OBJECT":
-                placement = context.object
+                self.setPlacement( context.object )
             elif props.custom_prop_placement == "DATA":
-                placement = context.object.data
+                self.setPlacement( context.object.data )
             elif props.custom_prop_placement == "SCENE":
-                placement = context.scene
+                self.setPlacement( context.scene )
             elif props.custom_prop_placement == "WORLD":
-                placement = context.scene.world
+                self.setPlacement( context.scene.world )
             else:
-                #placement = props.custom_path
-                placement = self.evalSafety(props.custom_path)
+                self.setPlacement( self.evalSafety(props.custom_path) )
                 
+            if self.getPlacement() != None:
                 
-            if placement != None:
-                
-                #if self.type == "DEFAULT":
                 active_index = props.ULIndex_Strings
                 active_string = props.collection_strings[active_index]
-                    
-                #for h in enumerate():
-                
-                print("OOF: 2")
-                print(active_string.__class__)
-                print(active_string.__class__.__name__)
-                count_new = 0
-                count_updated = 0
                 
                 def generateProperties(collection_properties, active_string):
+                    #scene = bpy.context.scene
+                    props = bpy.context.scene.RPMR_Props
+                    
                     count_new = 0
                     count_updated = 0
+                    #print("MLG: " + str(RIG_PROP_MAN_OT_generate_custom_props.getPlacement()) )
+                    placement = self.getPlacement()
                     
-                    #goes through every custom Property to generate
-                    #for i in enumerate(props.collection_properties):
                     for i in enumerate(collection_properties):
                     
                         if i[1].use == True:
@@ -482,7 +490,7 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
                                 if props.replace_existing_props == True:
                                     placement[name_with_prefix] = self.valueConvert(i[1].value)
                                     
-                                print("Attribute Exists: %s" % (name_with_prefix) )
+                                #print("Attribute Exists: %s" % (name_with_prefix) )
                                 count_updated += 1
                                 
                             if placement[name_with_prefix].__class__.__name__ != 'IDPropertyGroup':
@@ -496,30 +504,18 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
                             else:
                                 print("Was a dictionary: %s" % (name_with_prefix) )
                                 pass
-                    return [count_new, count_updated]
+                    self.addCount(count_new, count_updated)
+                    return None
                     
                 if self.type == "DEFAULT":
-                    count_list_final = generateProperties(props.collection_properties, active_string)
+                    generateProperties(props.collection_properties, active_string)
                 else:
-                    count_list_final = [0, 0]
-                    
+                
                     for i in enumerate(props.collection_strings):
                         active_string = props.collection_strings[i[0]]
                         
-                        #asssigned a list from generateProperties()
-                        count_list = generateProperties(props.collection_properties, active_string)
+                        generateProperties(props.collection_properties, active_string)
                         
-                        #count_list_final[0] += count_list[0]
-                        #count_list_final[1] += count_list[1]
-                        self.addCount(count_list[0], count_list[1])
-                        
-                #count_new = count_list_final[0]
-                #count_updated = count_list_final[1]
-                        
-                        
-                #Clears all the values, so it stays like before
-                #placement["_RNA_UI"].clear()
-                #reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (count_new, count_updated)
                 reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
                 
                 self.resetCount()
@@ -541,7 +537,7 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
             
         self.report({'INFO'}, reportString)
         
-        self.type == "DEFAULT"
+        self.type = "DEFAULT"
         
         return {'FINISHED'}
         
