@@ -279,6 +279,39 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
     type: bpy.props.StringProperty(default="DEFAULT")
     index: bpy.props.IntProperty(default=0, min=0)
     
+    count_new = 0
+    count_updated = 0
+    
+    @classmethod
+    def getCount(cls):
+        return [cls.count_new, cls.count_updated]
+        
+    @classmethod
+    def setCount(cls, count_new=None, count_updated=None):
+        #cls.count_new = count_new if count_new != None else pass
+        #cls.count_updated = count_updated if count_updated != None else pass
+        if count_new != None:
+            cls.count_new = count_new 
+        if count_updated != None:
+            cls.count_updated = count_updated
+        return None
+    
+    @classmethod
+    def addCount(cls, count_new=None, count_updated=None):
+        #cls.count_new = count_new if count_new != None else pass
+        #cls.count_updated = count_updated if count_updated != None else pass
+        if count_new != None:
+            cls.count_new += count_new 
+        if count_updated != None:
+            cls.count_updated += count_updated
+        return None
+        
+    @classmethod
+    def resetCount(cls):
+        cls.count_new = 0
+        cls.count_updated = 0
+        return None
+    
     #list("[0 , 0, 0]".strip("[] ").replace(" ", "").split(","))
     def checkIfList(self, string):
         #removes "\"" and "[" and "]", then splits from "," to a list
@@ -397,10 +430,10 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
             ]
         
         if len(props.collection_strings) > 0:
-            #"""
+            """
             active_index = props.ULIndex_Strings
             active_string = props.collection_strings[active_index]
-            #"""
+            """
             #Where to create the Custom Properties
             if props.custom_prop_placement == "OBJECT":
                 placement = context.object
@@ -416,51 +449,80 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
                 
                 
             if placement != None:
-                """
-                if self.type == "DEFAULT":
-                    active_index = props.ULIndex_Strings
-                    active_string = props.collection_strings[active_index]
-                else:
+                
+                #if self.type == "DEFAULT":
+                active_index = props.ULIndex_Strings
+                active_string = props.collection_strings[active_index]
                     
-                for h in 
-                """
+                #for h in enumerate():
+                
                 print("OOF: 2")
+                print(active_string.__class__)
+                print(active_string.__class__.__name__)
                 count_new = 0
                 count_updated = 0
                 
-                #goes through every custom Property to generate
-                for i in enumerate(props.collection_properties):
-                
-                    if i[1].use == True:
-                        #bpy.context.object["_RNA_UI"] = {"Bruh0": {"min": -1.5, "max": 1.5, "soft_min": 0.5, "use_soft_limits": True} }
-                        name_with_prefix = str(i[1].prefix) + active_string.name
-                        
-                        if name_with_prefix not in placement:
-                            placement[name_with_prefix] = self.valueConvert(i[1].value)
+                def generateProperties(collection_properties, active_string):
+                    count_new = 0
+                    count_updated = 0
+                    
+                    #goes through every custom Property to generate
+                    #for i in enumerate(props.collection_properties):
+                    for i in enumerate(collection_properties):
+                    
+                        if i[1].use == True:
+                            #bpy.context.object["_RNA_UI"] = {"Bruh0": {"min": -1.5, "max": 1.5, "soft_min": 0.5, "use_soft_limits": True} }
+                            name_with_prefix = str(i[1].prefix) + active_string.name
                             
-                            count_new += 1
-                        else:
-                            if props.replace_existing_props == True:
+                            if name_with_prefix not in placement:
                                 placement[name_with_prefix] = self.valueConvert(i[1].value)
                                 
-                            print("Attribute Exists: %s" % (name_with_prefix) )
-                            count_updated += 1
-                            
-                        if placement[name_with_prefix].__class__.__name__ != 'IDPropertyGroup':
-                            new_dict = {name_with_prefix: {} }
-                            
-                            #This is where all the generated attributes are placed to be created with "_RNA_UI"
-                            for j in attributes:
-                                new_dict[name_with_prefix][j] = getattr(i[1], j)
+                                count_new += 1
+                            else:
+                                if props.replace_existing_props == True:
+                                    placement[name_with_prefix] = self.valueConvert(i[1].value)
+                                    
+                                print("Attribute Exists: %s" % (name_with_prefix) )
+                                count_updated += 1
                                 
-                            placement["_RNA_UI"] = new_dict
-                        else:
-                            print("Was a dictionary: %s" % (name_with_prefix) )
-                            pass
+                            if placement[name_with_prefix].__class__.__name__ != 'IDPropertyGroup':
+                                new_dict = {name_with_prefix: {} }
+                                
+                                #This is where all the generated attributes are placed to be created with "_RNA_UI"
+                                for j in attributes:
+                                    new_dict[name_with_prefix][j] = getattr(i[1], j)
+                                    
+                                placement["_RNA_UI"] = new_dict
+                            else:
+                                print("Was a dictionary: %s" % (name_with_prefix) )
+                                pass
+                    return [count_new, count_updated]
+                    
+                if self.type == "DEFAULT":
+                    count_list_final = generateProperties(props.collection_properties, active_string)
+                else:
+                    count_list_final = [0, 0]
+                    
+                    for i in enumerate(props.collection_strings):
+                        active_string = props.collection_strings[i[0]]
+                        
+                        #asssigned a list from generateProperties()
+                        count_list = generateProperties(props.collection_properties, active_string)
+                        
+                        #count_list_final[0] += count_list[0]
+                        #count_list_final[1] += count_list[1]
+                        self.addCount(count_list[0], count_list[1])
+                        
+                #count_new = count_list_final[0]
+                #count_updated = count_list_final[1]
+                        
                         
                 #Clears all the values, so it stays like before
                 #placement["_RNA_UI"].clear()
-                reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (count_new, count_updated)
+                #reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (count_new, count_updated)
+                reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
+                
+                self.resetCount()
                 
             #Just error statements
             else:
