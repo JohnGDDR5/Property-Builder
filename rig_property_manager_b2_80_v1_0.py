@@ -15,76 +15,15 @@ bl_info = {
 import bpy
         
 from bpy.props import *
-    
-#Takes in an object as parameter, and returns a string of variable "icon"
-def objectIcon(object):
-    scene = bpy.context.scene
-    data = bpy.data
-    props = scene.RPMR_Props
-    
-    #icons = ["OUTLINER_OB_EMPTY", "OUTLINER_OB_MESH", "OUTLINER_OB_CURVE", "OUTLINER_OB_LATTICE", "OUTLINER_OB_META", "OUTLINER_OB_LIGHT", "OUTLINER_OB_IMAGE", "OUTLINER_OB_CAMERA", "OUTLINER_OB_ARMATURE", "OUTLINER_OB_FONT", "OUTLINER_OB_SURFACE", "OUTLINER_OB_SPEAKER", "OUTLINER_OB_FORCE_FIELD", "OUTLINER_OB_GREASEPENCIL", "OUTLINER_OB_LIGHTPROBE"]
-    #Object Type
-    
-    icon = "QUESTION"
-    
-    #schema: "Object Type": "Icon Name"
-    dictionary = {
-        "MESH": "OUTLINER_OB_MESH",
-        "EMPTY": "EMPTY",
-        "CAMERA": "OUTLINER_OB_CAMERA",
-        "CURVE": "OUTLINER_OB_CURVE",
-        "SURFACE": "OUTLINER_OB_SURFACE",
-        "META": "OUTLINER_OB_META",
-        "FONT": "OUTLINER_OB_FONT",
-        "GPENCIL": "OUTLINER_OB_GREASEPENCIL",
-        "ARMATURE": "OUTLINER_OB_ARMATURE",
-        "LATTICE": "OUTLINER_OB_LATTICE",
-        "LIGHT": "OUTLINER_OB_LIGHT",
-        "LIGHT_PROBE": "OUTLINER_OB_LIGHTPROBE",
-        "SPEAKER": "OUTLINER_OB_SPEAKER",
-    }
-    
-    #If there is an object to see if it has a type
-    if object is not None:
-        type = object.type
-    
-        icon = dictionary.get(str(type), "QUESTION")
-        
-        if icon == "EMPTY":
-            if object.empty_display_type != "IMAGE":
-                icon = "OUTLINER_OB_EMPTY"
-            elif object.empty_display_type == "IMAGE":
-                icon = "OUTLINER_OB_IMAGE"
-            elif object.field.type != "NONE":
-                icon = "OUTLINER_OB_FORCE_FIELD"
-                
-    return icon
 
 ##General UI Functions & Operators - TOP
-
-#This is for being able to set multiple attributes of operators in a single line, with a dictionary. In order to reduce the lines used/repeated
-def setAttributes(object, dictionary):
-    #dictionary should be attribute name and what to set its value
-    #dictionary = {"type": "ADD", }
-    for i in dictionary:
-        if hasattr(object, i):
-            setattr(object, i, dictionary[i])
-            
-    return None
     
-class customMethods:#(bpy.types.PropertyGroup):
-    """
-    #@classmethod
-    def setAttributes(cls, dictionary):
-        #dictionary should be attribute name and what to set its value
-        #dictionary = {"type": "ADD", }
-        for i in dictionary:
-            if hasattr(cls, i):
-                setattr(cls, i, dictionary[i])
-                
-        return None
-    """
-    def setAttributes(self, object, dictionary):
+class customMethods:
+    #def setAttributes(self, object, dictionary):
+    
+    #This is for being able to set multiple attributes of operators in a single line, with a dictionary. In order to reduce the lines used/repeated
+    @staticmethod
+    def setAttributes(object, dictionary):
         #dictionary should be attribute name and what to set its value
         #dictionary = {"type": "ADD", }
         for i in dictionary:
@@ -92,83 +31,94 @@ class customMethods:#(bpy.types.PropertyGroup):
                 setattr(object, i, dictionary[i])
                 
         return None
-
-#Copies properties from one object to another. If Duplicate Object is missing properties, it will ignore it.
-def copyAttributes(object, object_duplicate):
-    attributes = []
-    bruh = []
-    ignore = ('bl_rna', 'rna_type')
-    missing = []
-    #For loop to only get the attributes I made, not the default python and blender ones
-    for i in dir(object):
-        if i.startswith('__') == False and (i not in ignore):
-            attributes.append(i)
-        else:
-            bruh.append(i)
-            
-    print("bruh: %s" % (str(bruh) ) )
-    print("attributes: %s" % (str(attributes) ) )
-    
-    for i in attributes:
-        if hasattr(object_duplicate, i):
-            original_attr = getattr(object, i)
-            setattr(object_duplicate, i, original_attr)
-        else:
-            missing.append(i)
-    
-    #Prints the missing attributes for debugging
-    if len(missing) > 0:
-        class_name = object_duplicate.__class__.__name__
-        print("%s missing %d attributes: %s" % (class_name, len(missing), str(missing) ) )
-
-def UI_Functions(collection, UI_Index, type):
-    #collection is for ex. props.strings
-    #UI_Index is the index of active UI list element
-    
-    #gets the last index of list
-    list_length = len(collection)-1
-    print("UI_Index[1]: %d" % (UI_Index) )
-    #Add new item to collection
-    if type == "ADD":
-        collection.add()
-        UI_Index = len(collection)-1
-        #if len(collection)
-    #Basically Deletes
-    elif type == "REMOVE":
-        collection.remove(UI_Index)
-        if UI_Index >= list_length:
-            UI_Index -= 1
-    #Moves up
-    elif type == "UP":
-        if UI_Index != 0:
-            collection.move(UI_Index, UI_Index-1)
-            UI_Index -= 1
-        else:
-            collection.move(UI_Index, list_length)
-            UI_Index = list_length
-    #Moves down
-    elif type == "DOWN":
-        if UI_Index != list_length:
-            collection.move(UI_Index, UI_Index+1)
-            UI_Index += 1
-        else:
-            collection.move(UI_Index, 0)
-            UI_Index = 0
-    #Creates a Duplicate of the object in the collectionlection
-    elif type == "DUPLICATE":
-        if list_length >= 0:
-            duplicate = collection.add()
-            copyAttributes(collection[UI_Index], duplicate)
-            
         
-    print("UI_Index[1]: %d" % (UI_Index) )
-    return int(UI_Index)
 
-class RIG_PROP_MAN_OT_General_UIOps(bpy.types.Operator, customMethods):
+#For general UI functions used for UI classes
+class UI_Functions:
+    
+    #Copies properties from one object to another. If Duplicate Object is missing properties, it will ignore it.
+    @staticmethod
+    def copyAttributes(object, object_duplicate):
+        attributes = []
+        internal_use_ignore = []
+        ignore = ('bl_rna', 'rna_type')
+        missing = []
+        #For loop to only get the attributes I made, not the default python and blender ones
+        for i in dir(object):
+            if i.startswith('__') == False and (i not in ignore):
+                attributes.append(i)
+            else:
+                internal_use_ignore.append(i)
+                
+        print("internal_use_ignore: %s" % (str(internal_use_ignore) ) )
+        print("attributes: %s" % (str(attributes) ) )
+        
+        for i in attributes:
+            if hasattr(object_duplicate, i):
+                original_attr = getattr(object, i)
+                setattr(object_duplicate, i, original_attr)
+            else:
+                missing.append(i)
+        
+        #Prints the missing attributes for debugging
+        if len(missing) > 0:
+            class_name = object_duplicate.__class__.__name__
+            print("%s missing %d attributes: %s" % (class_name, len(missing), str(missing) ) )
+        
+    
+    @staticmethod
+    def UI_Functions(collection, UI_Index, type):
+        #collection is for ex. props.strings
+        #UI_Index is the index of active UI list element
+        
+        #gets the last index of list
+        list_length = len(collection)-1
+        #print("UI_Index[1]: %d" % (UI_Index) )
+        #Add new item to collection
+        if type == "ADD":
+            collection.add()
+            UI_Index = len(collection)-1
+            #if len(collection)
+        #Basically Deletes
+        elif type == "REMOVE":
+            collection.remove(UI_Index)
+            if UI_Index >= list_length:
+                UI_Index -= 1
+        #Moves up
+        elif type == "UP":
+            if UI_Index != 0:
+                collection.move(UI_Index, UI_Index-1)
+                UI_Index -= 1
+            else:
+                collection.move(UI_Index, list_length)
+                UI_Index = list_length
+        #Moves down
+        elif type == "DOWN":
+            if UI_Index != list_length:
+                collection.move(UI_Index, UI_Index+1)
+                UI_Index += 1
+            else:
+                collection.move(UI_Index, 0)
+                UI_Index = 0
+        #Creates a Duplicate of the object in the collectionlection
+        elif type == "DUPLICATE":
+            if list_length >= 0:
+                duplicate = collection.add()
+                UI_Functions.copyAttributes(collection[UI_Index], duplicate)
+        #Uses the dictionary function .clear() to remove all stuff in the collection
+        elif type == "CLEAR":
+            collection.clear()
+            UI_Index = 0
+                
+            
+        print("UI_Functions: { type: %s, UI_Index: %d }" % (type, UI_Index) )
+        return int(UI_Index)
+
+class RIG_PROP_MAN_OT_general_ui_ops(bpy.types.Operator, customMethods):
     bl_idname = "rig_prop_man.general_ui_ops"
     bl_label = "General UI List Operators/Functions"
     bl_description = "For adding, removing and moving up/down list elements"
-    bl_options = {'UNDO',}
+    bl_options = {'UNDO', 'REGISTER'}
     type: bpy.props.StringProperty(default="DEFAULT")
     collection: bpy.props.StringProperty(default="DEFAULT")
     list_index: bpy.props.StringProperty(default="DEFAULT")
@@ -196,13 +146,6 @@ class RIG_PROP_MAN_OT_General_UIOps(bpy.types.Operator, customMethods):
         self.collection = "DEFAULT"
         self.list_index = "DEFAULT"
         print("Reset States: %s, %s, %s" % (self.type, self.collection, self.list_index) )
-        #return None
-        
-    def __init__(self):
-        print("Start")
-
-    def __del__(self):
-        print("End")
     
     @classmethod #This one seems useless
     def poll(cls, context):
@@ -238,8 +181,8 @@ class RIG_PROP_MAN_OT_General_UIOps(bpy.types.Operator, customMethods):
                 
                 print("UI_Index[1]: %d" % (UI_Index) )
                 #getattr(props, self.list_index) = UI_Functions(collection, UI_Index, self.type)
-                #UI_Index = UI_Functions(collection, UI_Index, self.type)
-                setattr(props, self.list_index, UI_Functions(collection, UI_Index, self.type) )
+                new_UI_Index = UI_Functions.UI_Functions(collection, UI_Index, self.type)
+                setattr(props, self.list_index, new_UI_Index )
                 print("UI_Index[2]: %d" % (UI_Index) )
             else:
                 print("UI_Index[3]: %d" % (UI_Index) )
@@ -256,21 +199,73 @@ class RIG_PROP_MAN_OT_General_UIOps(bpy.types.Operator, customMethods):
 
 ##General UI Functions & Operators - TOP
 
-class RIG_PROP_MAN_OT_select_collection(bpy.types.Operator):
-    bl_idname = "rig_prop_man.select_collection"
-    bl_label = "Select Collection"
-    bl_description = "Sets Parent collection for Backups"
+class RIG_PROP_MAN_OT_copy_paste_prop(bpy.types.Operator):
+    bl_idname = "rig_prop_man.copy_paste_prop"
+    bl_label = "Copy/Paste a selected Custom Property"
+    bl_description = "Copies and Paste from a selected Custom Property"
     bl_options = {'UNDO',}
+
+    name: bpy.props.StringProperty(default="[DEFAULT VALUE]")
+    prefix: bpy.props.StringProperty(default="")
+    value: bpy.props.StringProperty(default="")
+    default: bpy.props.StringProperty(default="")
+    min: bpy.props.FloatProperty(default= -10000)
+    max: bpy.props.FloatProperty(default= 10000)
+    soft_min: bpy.props.FloatProperty(default= -10000)
+    soft_max: bpy.props.FloatProperty(default= 10000)
+    description: bpy.props.StringProperty(default="")
+    use_soft_limits: bpy.props.BoolProperty(default=False)
+
     type: bpy.props.StringProperty(default="DEFAULT")
     index: bpy.props.IntProperty(default=0, min=-1)
     
     def execute(self, context):
         scene = bpy.context.scene
         props = scene.RPMR_Props
+
+        attributes = [
+            "name", 
+            "prefix", 
+            "value", 
+            "default",
+            "min",
+            "max",
+            "soft_min",
+            "soft_max",
+            "description",
+            "use_soft_limits",
+            ]
+            
+        if self.type == "COPY":
+            reportString = "Copied Property"
+            
+            if len(props.collection_properties) > 0:
+                active_index = props.ULIndex_Properties
+                active_prop = props.collection_properties[active_index]
                 
-        if self.type == "SELECT_ACTIVE":
-            #props.collection_active = bpy.data.collections[self.index]
-            print("Bruh")
+                for j in attributes:
+                    setattr(self, j, getattr(active_prop, j) )
+            else:
+                reportString = "No Properties to Copy from"
+        elif self.type == "PASTE":
+            #This is to prevent pasting all the default values, which is unwanted
+            if self.name != "[DEFAULT VALUE]":
+                reportString = "Pasted Property"
+                
+                if len(props.collection_properties) > 0:
+                    active_index = props.ULIndex_Properties
+                    active_prop = props.collection_properties[active_index]
+                    
+                    for j in attributes:
+                        setattr(active_prop, j, getattr(self, j) )
+                else:
+                    reportString = "No Properties to Paste to"
+            else:
+                reportString = "No Properties copied from"
+        else:
+            reportString = "Operator Type Unset"
+
+        self.report({'INFO'}, reportString)
             
         self.type == "DEFAULT"
         
@@ -279,20 +274,85 @@ class RIG_PROP_MAN_OT_select_collection(bpy.types.Operator):
 class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
     bl_idname = "rig_prop_man.generate_custom_props"
     bl_label = "Create a new Collection"
-    bl_description = "Creates a new Parent Collection where new Backup collections for Objects are created."
+    bl_description = "Generates Custom Properties where specified by the user. Can also replace existing Custom Properties if allowed to by the User in Addon Prerefences"
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
     index: bpy.props.IntProperty(default=0, min=0)
     
+    #list("[0 , 0, 0]".strip("[] ").replace(" ", "").split(","))
+    def checkIfList(self, string):
+        #removes "\"" and "[" and "]", then splits from "," to a list
+        string_list = string.strip("[] ").replace(" ", "").replace("\"", "").split(",")
+        print(string_list)
+        for i in enumerate(string_list):
+            #integer
+            try:
+                string_list[i[0]] = int(string_list[i[0]])
+                continue
+            except:
+                pass
+            #float
+            try:
+                string_list[i[0]] = float(string_list[i[0]])
+                continue
+            except:
+                pass
+            #string
+            try:
+                string_list[i[0]] = str(string_list[i[0]])
+                continue
+            except:
+                pass
+                
+        type_previous = string_list[0].__class__.__name__
+        compatible_types = ["int", "float"]
+        is_convertible = True
+        
+        #excludes 1st index
+        for i in string_list[1:]:
+            index_type = i.__class__.__name__
+            if index_type == type_previous or index_type in compatible_types:
+                continue
+            else:
+                is_convertible = False
+                break
+        print(string_list)
+        
+        #If types are either (int or float) or just (string), not all 3
+        if is_convertible == True:
+            #string
+            try:
+                string_list = list(string_list)
+                return string_list
+            except:
+                return None
+        else:
+            return None
+    
     def valueConvert(self, string):
         value = string
+        #int
         try:
             value = int(string)
             return value
         except:
             #pass
+            #float
             try:
                 value = float(string)
+                return value
+            except:
+                pass
+            #dictionary
+            try:
+                value = dict(string)
+                return value
+            except:
+                pass
+            #list
+            try:
+                #value = list(string)
+                value = self.checkIfList(string)
                 return value
             except:
                 pass
@@ -304,6 +364,17 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
         
         reportString = "Done"
         print("OOF: -1")
+        
+        attributes = [
+            "default",
+            "min",
+            "max",
+            "soft_min",
+            "soft_max",
+            "description",
+            "use_soft_limits",
+            ]
+        
         if context.object != None:
             print("OOF: 0")
             if len(props.collection_strings) > 0:
@@ -322,7 +393,7 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
                 count_new = 0
                 count_updated = 0
                 
-                #Removes collections from all RPMR_Props.collections.collection
+                #goes through every custom Property to generate
                 for i in enumerate(props.collection_properties):
                     #print("Use: %s" % (str(i[1].use) ) )
                     if i[1].use == True:
@@ -332,32 +403,37 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
                         name_with_prefix = str(i[1].prefix) + active_string.name
                         
                         if name_with_prefix not in placement:
-                            #placement[name_with_prefix] = i[1].value
                             placement[name_with_prefix] = self.valueConvert(i[1].value)
-                            new_attribute = placement[name_with_prefix]
                             
                             count_new += 1
-                            
                         else:
+                            if props.replace_existing_props == True:
+                                placement[name_with_prefix] = self.valueConvert(i[1].value)
+                                
                             print("Attribute Exists: %s" % (name_with_prefix) )
                             count_updated += 1
                             
-                        new_dict = {name_with_prefix: {} }
-                        
-                        #attribute_dict = {""}
-                        
-                        #new_dict[name_with_prefix]["value"] = i[1].value
-                        new_dict[name_with_prefix]["default"] = i[1].default
-                        
-                        new_dict[name_with_prefix]["min"] = i[1].min
-                        new_dict[name_with_prefix]["max"] = i[1].max
-                        new_dict[name_with_prefix]["soft_min"] = i[1].soft_min
-                        new_dict[name_with_prefix]["soft_max"] = i[1].soft_max
-                        
-                        new_dict[name_with_prefix]["description"] = i[1].description
-                        new_dict[name_with_prefix]["use_soft_limits"] = i[1].use_soft_limits
-                        
-                        placement["_RNA_UI"] = new_dict
+                        if placement[name_with_prefix].__class__.__name__ != 'IDPropertyGroup':
+                            new_dict = {name_with_prefix: {} }
+                            
+                            for j in attributes:
+                                new_dict[name_with_prefix][j] = getattr(i[1], j)
+                            """
+                            new_dict[name_with_prefix]["default"] = i[1].default
+                            
+                            new_dict[name_with_prefix]["min"] = i[1].min
+                            new_dict[name_with_prefix]["max"] = i[1].max
+                            new_dict[name_with_prefix]["soft_min"] = i[1].soft_min
+                            new_dict[name_with_prefix]["soft_max"] = i[1].soft_max
+                            
+                            new_dict[name_with_prefix]["description"] = i[1].description
+                            new_dict[name_with_prefix]["use_soft_limits"] = i[1].use_soft_limits
+                            """
+                            
+                            placement["_RNA_UI"] = new_dict
+                        else:
+                            print("Was a dictionary: %s" % (name_with_prefix) )
+                            pass
                         
                 #Clears all the values, so it stays like before
                 #placement["_RNA_UI"].clear()
@@ -374,119 +450,8 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
         
         return {'FINISHED'}
         
-#Note: This must be updated to actually be a debugger for the new addon
-class RIG_PROP_MAN_OT_debugging(bpy.types.Operator):
-    bl_idname = "rig_prop_man.debug"
-    bl_label = "Backup Objects Debugging Operators"
-    bl_description = "To assist with debugging and development"
-    bl_options = {'UNDO','REGISTER'}
-    type: bpy.props.StringProperty(default="DEFAULT")
-    #index: bpy.props.IntProperty(default=0, min=0)
-    
-    def invoke(self, context, event):
-        #self.x = event.mouse_x
-        #self.y = event.mouse_y
-        if self.type != "DELETE_NUKE":
-            return self.execute(context)
-        else:
-            print("MLG")
-            wm = context.window_manager
-            print(str(event))
-            #invoke_props_popup(operator, event)
-            #return wm.invoke_props_dialog(self)
-            return wm.invoke_confirm(self, event)
-    
-    def execute(self, context):
-        scene = bpy.context.scene
-        props = scene.RPMR_Props
-        
-        #Mass deletion of every Iteration Object & their collections and objects inside them
-        if self.type == "DELETE_NUKE":
-            
-            if props.collection_active is not None:
-                removedObjects = 0
-                removedCol = 0
-                
-                for i in enumerate(reversed(props.collection_strings)):
-                    if i[1].collection is not None:
-                        for j in i[1].collection.objects:
-                            removedObjects += 1
-                            i[1].collection.objects.unlink(j)
-                            
-                        removedCol += 1
-                        #Removes collection, but not other links of it incase the user linked it
-                        bpy.data.collections.remove(i[1].collection, do_unlink=True)
-                        
-                    props.collection_strings.remove(len(props.collection_strings)-1)
-                    
-                colNameActive = props.collection_active.name
-                    
-                reportString = "Removed: [%s] & %d Objects & %d Collection Groups" % (colNameActive, removedObjects, removedCol)
-                
-                bpy.data.collections.remove(props.collection_active, do_unlink=True)
-                
-                print(reportString)
-                self.report({'INFO'}, reportString)
-            else:
-                #Removes scene.RPMR_Props.collections
-                for i in enumerate(reversed(props.collection_strings)):
-                    props.collection_strings.remove(len(props.collection_strings)-1)
-                
-            print(reportString)
-            self.report({'INFO'}, reportString)
-                
-        elif self.type == "PRINT_1":
-            no_objects = 0
-            no_collections = 0
-            
-            for i in enumerate(props.collection_strings):
-                if i[1].object != None:
-                    print_ob = str(i[1].object.name)
-                else:
-                    print_ob = "[None]"
-                    no_objects += 1
-                    
-                if i[1].collection != None:
-                    print_col = str(i[1].collection.name)
-                else:
-                    print_col = "[None]"
-                    no_collections += 1
-                
-                print("%d. Object: %s, Collection: %s" % (i[0], print_ob, print_col))
-                
-            print("Total Objects: %d" % (len(props.collection_strings)))
-            #Displays how many Iteration Objects don't have Objects or Collections
-            print("No Objects: %d; No Collections: %d" % (no_objects, no_collections))
-        
-        #Adds 3 Backup Objects with missing Objects & Collections for testing.
-        elif self.type == "TESTING":
-            
-            ob_1 = props.collection_strings.add()
-            ob_1.collection = bpy.data.collections[0]
-            
-            ob_2 = props.collection_strings.add()
-            ob_2.object = bpy.data.objects[0]
-            
-            ob_3 = props.collection_strings.add()
-            print("Added 3 Backup Objects.")
-            
-        #Copied from .remove_ops operator before.
-        elif self.type == "PRINT":
-            #Gets previous length of props.collection_strings
-            len_previous = len(props.collection_strings)
-            
-            before = list(props.collection_strings)
-            
-            for i in reversed(list(enumerate(before))):
-                if len(i[1].collection.objects) == 1:
-                    print("before[i[0]]: [%d]; Object.name: %s" % (i[0], before[i[0]].object.name))
-                    del before[i[0]]
-            
-        #Resets default settings
-        self.type == "DEFAULT"
-        
-        return {'FINISHED'}
-        
+##Operator Template
+"""
 class RIG_PROP_MAN_OT_ui_operators_move(bpy.types.Operator):
     bl_idname = "rig_prop_man.ui_ops_move"
     bl_label = "List Operators"
@@ -501,92 +466,6 @@ class RIG_PROP_MAN_OT_ui_operators_move(bpy.types.Operator):
         props = scene.RPMR_Props
         active = props.ULIndex_Strings
         
-        #collection_active: 
-        #collections:
-            #collection:
-            #object:
-            #duplicates:
-            #recent:
-            
-        
-        #Moves list row UP
-        if self.type == "UP":
-            
-            if self.sub == "DEFAULT":
-                if active != 0:
-                    props.collection_strings.move(active, active-1)
-                    props.ULIndex_Strings-=1
-                    
-                else:
-                    props.collection_strings.move(0, len(props.collection_strings)-1)
-                    props.ULIndex_Strings  = len(props.collection_strings)-1
-                    
-            elif self.sub == "TOP":
-                props.collection_strings.move(active, 0)
-                props.ULIndex_Strings = 0
-        
-        #Moves list row DOWN
-        elif self.type == "DOWN":
-            
-            if self.sub == "DEFAULT":
-                if active != len(props.collection_strings)-1:
-                    props.collection_strings.move(active, active+1)
-                    props.ULIndex_Strings += 1
-                    
-                else:
-                    props.collection_strings.move(len(props.collection_strings)-1, 0)
-                    props.ULIndex_Strings = 0
-                    
-            elif self.sub == "BOTTOM":
-                props.collection_strings.move(active, len(props.collection_strings)-1)
-                props.ULIndex_Strings = len(props.collection_strings)-1
-                
-        elif self.type == "REMOVE" and len(props.collection_strings) > 0:
-        
-            if self.sub == "DEFAULT":
-                #If active is the last one
-                if active == len(props.collection_strings)-1:
-                    props.collection_strings.remove(props.ULIndex_Strings)
-                    
-                    if len(props.collection_strings) != 0:
-                        props.ULIndex_Strings -= 1
-                        
-                else:
-                    props.collection_strings.remove(props.ULIndex_Strings)
-            #Note: This only removes the props.collection_strings, not the actual collections or 
-            """
-            elif self.sub == "ALL":
-                props.collection_strings.clear()
-            """
-                
-                
-        #Note: This only removes the props.collection_strings, not the actual collections or objects
-        elif self.type == "REMOVE_UI_ALL":
-            props.collection_strings.clear()
-            
-            reportString = "Removed all UI List elements. (Objects in Scene unaffected)" #% (active_object.name)
-            
-            self.report({'INFO'}, reportString)
-                
-        elif self.type == "SELECT_ACTIVE_UI":
-            active_object = bpy.context.active_object
-            if active_object != None:
-                found = False
-                
-                for i in enumerate(props.collection_strings):
-                    if active_object == i[1].object:
-                        props.ULIndex_Strings = i[0]
-                        found = True
-                        break
-                        
-                if found == False:
-                    reportString = "\"%s\" not in Iteration List" % (active_object.name)
-                    
-                    self.report({'INFO'}, reportString)
-            else:
-                reportString = "No Active Object"
-                    
-                self.report({'INFO'}, reportString)
             
         
         #Resets self props into "DEFAULT"
@@ -594,6 +473,7 @@ class RIG_PROP_MAN_OT_ui_operators_move(bpy.types.Operator):
         self.sub == "DEFAULT"
         
         return {'FINISHED'}
+"""
 
 #List drawing Class
 class RIG_PROP_MAN_UL_items_strings(bpy.types.UIList):
@@ -652,7 +532,35 @@ class RIG_PROP_MAN_UL_items_properties(bpy.types.UIList):
     def invoke(self, context, event):
         pass
 
+class RIG_PROP_MAN_MT_dropdown_menu_ui(bpy.types.Menu):
+    bl_idname = "RIG_PROP_MAN_MT_dropdown_menu_ui"
+    bl_label = "Extra UI Functions & Operators"
+    bl_description = "Copy/Paste and Duplicate functions"
     
+    # here you specify how they are drawn
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        data = bpy.data
+        props = scene.RPMR_Props
+        
+        col = layout.column()
+        
+        #row = col.row(align=True)
+        
+        properties = {"collection": "collection_properties", "list_index": "ULIndex_Properties"}
+        
+        #Copy/Paste
+        button = col.operator("rig_prop_man.copy_paste_prop", text="Copy", icon="COPYDOWN")
+        button.type = "COPY"
+        
+        button = col.operator("rig_prop_man.copy_paste_prop", text="Paste", icon="PASTEDOWN")
+        button.type = "PASTE"
+        
+        button = col.operator("rig_prop_man.general_ui_ops", text="Duplicate", icon="DUPLICATE")
+        self.setAttributes(button, properties)
+        button.type = "DUPLICATE"
+
 class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
     #A Custom Panel in Viewport
     bl_idname = "RIG_PROP_MAN_PT_custom_panel1"
@@ -687,11 +595,6 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         row.label(text="Generate:")
         
         row = col.row(align=True)
-        
-        MenuName2 = "Select Collection"
-        
-        if props.collection_active is not None:
-            MenuName2 = props.collection_active.name
             
         row.operator("rig_prop_man.generate_custom_props", icon="ADD", text="Custom Props for Active Name")
         
@@ -773,8 +676,22 @@ class RIG_PROP_MAN_PT_custom_panel1(bpy.types.Panel, customMethods):
         self.setAttributes(button, properties)
         button.type = "REMOVE"
         
-        #button = col.operator("rig_prop_man.ui_ops_select", text="", icon="RESTRICT_SELECT_OFF")
-        #button.type = "SELECT_ACTIVE_UI"
+        #Copy/Paste Menu
+        col.menu("RIG_PROP_MAN_MT_dropdown_menu_ui", icon="DOWNARROW_HLT", text="")
+        
+        """
+        #Copy/Paste
+        button = col.operator("rig_prop_man.copy_paste_prop", text="", icon="COPYDOWN")
+        button.type = "COPY"
+        
+        button = col.operator("rig_prop_man.copy_paste_prop", text="", icon="PASTEDOWN")
+        button.type = "PASTE"
+        
+        button = col.operator("rig_prop_man.general_ui_ops", text="", icon="DUPLICATE")
+        self.setAttributes(button, properties)
+        button.type = "DUPLICATE"
+        """
+        
         #End of CustomPanel
         
 
@@ -795,8 +712,7 @@ class RIG_PROP_MAN_PT_property(bpy.types.Panel, customMethods):
         props = scene.RPMR_Props
         
         active_index = props.ULIndex_Properties
-        #collection_active: 
-        #collections:
+        
         col = layout.column()
         
         if len(props.collection_properties) > 0:
@@ -833,118 +749,9 @@ class RIG_PROP_MAN_PT_property(bpy.types.Panel, customMethods):
             
         else:
             row.enabled = False
-        
-#This is a subpanel
-class RIG_PROP_MAN_PT_backup_settings(bpy.types.Panel):
-    bl_label = "Backup Settings"
-    bl_parent_id = "RIG_PROP_MAN_PT_custom_panel1"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = 'UI'
-    #bl_context = "output"
-    bl_category = "Prop Man"
-    
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        data = bpy.data
-        props = scene.RPMR_Props
-        
-        #collection_active: 
-        #collections:
-        
-        col = layout.column()
-        
-        #row = col.row(align=True)
-        #row.label(text="Only Active Object")
-        
-        row = col.row(align=True)
-        #row.prop(scene.RPMR_Props, "only_active", expand=True)
-        row.label(text="Tron")
-        
-        col.separator()
-        
-        row = col.row(align=True)
-        row.label(text="In Weight Paint")
-        
-        
-        
-class RIG_PROP_MAN_PT_cleaning(bpy.types.Panel):
-    bl_label = "Cleaning Operators"
-    bl_parent_id = "RIG_PROP_MAN_PT_custom_panel1"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = 'UI'
-    #bl_context = "output"
-    bl_category = "Prop Man"
-    
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        data = bpy.data
-        props = scene.RPMR_Props
-        
-        col = layout.column(align=False)
-        
-        row = col.row(align=True)
-        row.label(text="Cleaning OOOF")
-        
-        #col.separator()
-        
-class RIG_PROP_MAN_PT_debug_panel(bpy.types.Panel):
-    bl_label = "Debugging Operators"
-    bl_parent_id = "RIG_PROP_MAN_PT_custom_panel1"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = 'UI'
-    #bl_context = "output"
-    bl_category = "Prop Man"
-    
-    @classmethod
-    def poll(cls, context):
-        scene = bpy.context.scene
-        props = scene.RPMR_Props
-        
-        #return props.collection_parent is not None and props.collection_active is not None
-        return props.debug_mode == True
-    
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        data = bpy.data
-        props = scene.RPMR_Props
-        
-        col = layout.column(align=False)
-        
-        row = col.row(align=True)
-        row.label(text="Print")
-        
-        row = col.row(align=True)
-        row.operator("rig_prop_man.debug", text="Print Different").type = "PRINT_DIFFERENT_1"
-        
-        row = col.row(align=True)
-        row.operator("rig_prop_man.debug", text="Print Objects/Collections").type = "PRINT_1"
-        
-        #row = col.row(align=True)
-        #row.operator("rig_prop_man.debug", text="Delete Test").type = "CLEAN"
-        
-        #col.separator()
-        
-        row = col.row(align=True)
-        row.label(text="Add")
-        
-        row = col.row(align=True)
-        row.operator("rig_prop_man.debug", text="Add 3 Objects").type = "TESTING"
-        
-        #col.separator()
-        
-        row = col.row(align=True)
-        
-        row.label(text="Delete")
-        
-        row = col.row(align=True)
-        #button = row.operator("rig_prop_man.debug", text="Delete All")
-        #button.type = "REMOVE_UI_ALL"
-        row.operator("rig_prop_man.ui_ops_move", icon="TRASH", text="All UI Elements").type = "REMOVE_UI_ALL"
             
-    
+
+
 class RIG_PROP_MAN_preferences(bpy.types.AddonPreferences):
     #bl_idname = "iterate_objects_addon_b2_80_v1_0"
     bl_idname = __name__
@@ -968,7 +775,7 @@ class RIG_PROP_MAN_preferences(bpy.types.AddonPreferences):
         if self.ui_tab == "GENERAL":
             row = col.row(align=True)
             #row.label(text="Add Button to 3D Viewport Header?")
-            row.prop(props, "debug_mode", expand=True, text="Debug Mode")
+            row.prop(props, "replace_existing_props", expand=True, text="Replace/Update Existng Properties")
             
             row = col.row(align=True)
             
@@ -979,7 +786,7 @@ class RIG_PROP_MAN_preferences(bpy.types.AddonPreferences):
             row.operator("wm.url_open", text="Twitter").url = "https://twitter.com/JohnGDDR5"
             row.operator("wm.url_open", text="Artstation").url = "https://www.artstation.com/johngddr5"
 
-#class RIG_PROP_MAN_property(bpy.types.PropertyGroup):
+#options for a single property
 class RIG_PROP_MAN_property:
     prefix: bpy.props.StringProperty(name="Prefix", default="")
     value: bpy.props.StringProperty(name="Value", default="")
@@ -1028,9 +835,6 @@ class RIG_PROP_MAN_props(bpy.types.PropertyGroup):
     collection_strings: bpy.props.CollectionProperty(type=RIG_PROP_MAN_property_strings)
     collection_properties: bpy.props.CollectionProperty(type=RIG_PROP_MAN_properties)
     
-    collection_active: bpy.props.PointerProperty(name="Collection to add Collections for Object duplicates", type=bpy.types.Collection)
-    #Booleans for locking default collection of parent
-    
     #Index for Strings_Collection
     ULIndex_Strings: bpy.props.IntProperty(name="String List Index", description="Active UI String List Index", default= 0, min=0)
     
@@ -1038,23 +842,29 @@ class RIG_PROP_MAN_props(bpy.types.PropertyGroup):
     ULIndex_Properties: bpy.props.IntProperty(name="Properties List Index", description="Active UI Properties List Index", default= 0, min=0)
     
     #Dropdown for Iterate Display
-    dropdown_1: bpy.props.BoolProperty(name="Dropdown", description="Show Object of Backup Object", default=False)
+    replace_existing_props: bpy.props.BoolProperty(name="Replace Existing Custom Properties", description="Replace existing properties with the same name with the new updated values.", default=True)
     
-    #group_name_use: bpy.props.BoolProperty(name="Use Object Name for New Collection", description="Use the Object\'s name for the New Collection when creating a new Iteration Object", default=True)
+    repeating = "Places generated Custom Properites in "
     
-    group_name: bpy.props.StringProperty(name="New Collection Name", description="Name used when creating a new collection for Active", default="Group")
-    
-    listDesc =  ["Displays List in order of how many duplicates each object has", "Displays List in the order they were created", "Displays List in order user specified"]
-    #listDesc2 =  ["List displays in Descending Order", "List displays in Ascending Order"]
+    listDesc =  [
+    repeating + "Object",
+    repeating + "Object's Data",
+    repeating + "Scene Data",
+    repeating + "Scene Data",
+    repeating + "World Data",
+    repeating + "Custom Data Path. ex. \"bpy.context.object\""
+    ]
     
     ##NEW CRAP
     custom_prop_placement: bpy.props.EnumProperty(name="Custom Property Placement"
-        , items= [("OBJECT", "Object", listDesc[0], "OBJECT_DATA", 0), ("DATA", "Data", listDesc[1], "MESH_DATA", 1)]
+        , items= [
+        ("OBJECT", "Object", listDesc[0], "OBJECT_DATA", 0),
+        ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
+        ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
+        ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
+        ("CUSTOM", "Custom Path", listDesc[4], "FILE_TEXT", 4),
+        ]
         , description="Where to calculate and send Custom Properties from Addon", default="DATA")
-    
-    debug_mode: bpy.props.BoolProperty(name="Enable Debug Operators", description="Enables a panel with Debugging operators for developers", default=True)
-    
-    debug_mode_arrow: bpy.props.BoolProperty(name="Debug Mode Dropdown Arrow", description="To display Debug Mode", default=True)
     
     
     #END
@@ -1063,27 +873,27 @@ class RIG_PROP_MAN_props(bpy.types.PropertyGroup):
 #Classes that are registered
 classes = (
     #customMethods,
-    RIG_PROP_MAN_OT_General_UIOps,
+    RIG_PROP_MAN_OT_general_ui_ops,
     
-    RIG_PROP_MAN_OT_select_collection,
+    RIG_PROP_MAN_OT_copy_paste_prop,
     RIG_PROP_MAN_OT_generate_custom_props,
     #RIG_PROP_MAN_OT_duplicate,
     #RIG_PROP_MAN_OT_cleaning,
     #RIG_PROP_MAN_OT_removing,
     
-    RIG_PROP_MAN_OT_debugging,
-    RIG_PROP_MAN_OT_ui_operators_move,
+    #RIG_PROP_MAN_OT_debugging,
+    #RIG_PROP_MAN_OT_ui_operators_move,
     #RIG_PROP_MAN_OT_ui_operators_select,
     
     RIG_PROP_MAN_UL_items_strings,
     RIG_PROP_MAN_UL_items_properties,
-    #RIG_PROP_MAN_MT_menu_select_collection,
+    RIG_PROP_MAN_MT_dropdown_menu_ui,
     
     RIG_PROP_MAN_PT_custom_panel1,
     RIG_PROP_MAN_PT_property,
-    RIG_PROP_MAN_PT_backup_settings,
-    RIG_PROP_MAN_PT_cleaning,
-    RIG_PROP_MAN_PT_debug_panel,
+    #RIG_PROP_MAN_PT_backup_settings,
+    #RIG_PROP_MAN_PT_cleaning,
+    #RIG_PROP_MAN_PT_debug_panel,
     
     RIG_PROP_MAN_preferences,
     
@@ -1109,7 +919,7 @@ def register():
     #bpy.types.Scene.IM_Collections = bpy.props.CollectionProperty(type=REF_IMAGEAID_Collections)
     bpy.types.Scene.RPMR_Props = bpy.props.PointerProperty(type=RIG_PROP_MAN_props)
     
-    print(RIG_PROP_MAN_OT_General_UIOps.__mro__)
+    print(RIG_PROP_MAN_OT_general_ui_ops.__mro__)
     
 def unregister():
     #ut = bpy.utils

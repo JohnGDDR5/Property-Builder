@@ -13,3 +13,7 @@
 *.blend2
 *.blend3
 *.blend4
+
+#Visual Studio Code Project files
+.idea/*
+.vscode/*
