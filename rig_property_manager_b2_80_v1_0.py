@@ -13,6 +13,8 @@ bl_info = {
 
 
 import bpy
+
+import ast #For string to dictionary evaluations
         
 from bpy.props import *
 
@@ -330,9 +332,10 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
     
     #checks if String can be converted into a List for Blender Custom Property. Values must be of the same type
     def checkIfList(self, string):
+        print("Bruh: " + str(string) )
         #removes "\"" and "[" and "]", then splits from "," to a list
         string_list = string.strip("[] ").replace(" ", "").replace("\"", "").split(",")
-        print(string_list)
+        print("Bruh: " + str(string_list) )
         for i in enumerate(string_list):
             #integer
             try:
@@ -377,6 +380,24 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
                 return None
         else:
             return None
+            
+    #checks if String can be converted into a List for Blender Custom Property. Values must be of the same type
+    def checkIfDict(self, string):
+        start = string.find("{")
+        end = string.rfind("{")
+        print(start + ":" + end)
+        print("mlggg: " + string)
+        if start != -1 and start < end:
+            
+            try:
+                #string.
+                #value = dict(eval(string) )
+                #string = eval(string)
+                return eval(string)
+            except:
+                #return string
+                pass
+        return string
     
     #Tries to convert Strings into int, floats, dict, or list for Custom Properties
     def valueConvert(self, string):
@@ -395,13 +416,16 @@ class RIG_PROP_MAN_OT_generate_custom_props(bpy.types.Operator):
             pass
         #dictionary
         try:
-            value = dict(string)
-            return value
+            #Uses the "ast" library to convert strings to dictionaries
+            value = ast.literal_eval(string)
+            if value.__class__.__name__ == "dict":
+                return value
         except:
             pass
         #list
         try:
             #value = list(string)
+            print("TRASH 2")
             value = self.checkIfList(string)
             return value
         except:
@@ -874,6 +898,30 @@ class RIG_PROP_MAN_PT_property(bpy.types.Panel, customMethods):
             #row.label(text="Add Properties to edit")
             #row.enabled = False
             
+#This is a subpanel
+class RIG_PROP_MAN_PT_options(bpy.types.Panel, customMethods):
+    bl_label = "Options"
+    bl_parent_id = "RIG_PROP_MAN_PT_custom_panel1"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = 'UI'
+    #bl_context = "output"
+    bl_category = "Prop Man"
+    
+    def draw(self, context):
+        layout = self.layout
+        
+        data = bpy.data
+        scene = context.scene
+        props = scene.RPMR_Props
+        
+        active_index = props.ULIndex_Properties
+        
+        col = layout.column()
+        
+        row = col.row(align=True)
+        #row.label(text="Add Button to 3D Viewport Header?")
+        row.prop(props, "replace_existing_props", expand=True, text="Replace/Update Existng Properties")
+            
 
 
 class RIG_PROP_MAN_preferences(bpy.types.AddonPreferences):
@@ -1019,6 +1067,7 @@ classes = (
     
     RIG_PROP_MAN_PT_custom_panel1,
     RIG_PROP_MAN_PT_property,
+    RIG_PROP_MAN_PT_options,
     #RIG_PROP_MAN_PT_backup_settings,
     #RIG_PROP_MAN_PT_cleaning,
     #RIG_PROP_MAN_PT_debug_panel,
