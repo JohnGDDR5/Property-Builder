@@ -1,4 +1,4 @@
-#Notes:
+##Notes:
 
 #*.mp4 will ignore all .mp4 files
 
@@ -6,14 +6,20 @@
 #Old Script Versions/*
 
 #duplicate_object_script_test.py
+##
 
 #Actual Exclusions:
 
-*.blend1
-*.blend2
-*.blend3
-*.blend4
+.blend1
+.blend2
+.blend3
+.blend4
+#.blend[0-9]
 
 #Visual Studio Code Project files
 .idea/*
 .vscode/*
+.vscode/
+
+#Ignore compiled python
+__pycache__/
