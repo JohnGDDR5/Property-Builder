@@ -1,17 +1,4 @@
 
-"""
-bl_info = {
-    "name": "Rig Property Builder",
-    "description": "Workflow Addon for easily updating, creating and managing multiple custom properies for rigs. Made for riggers.",
-    "author": "Juan Cardenas (JohnGDDR5)",
-    "version": (1, 0, 0), 
-    "blender": (2, 80, 0),
-    "location": "3D View > Side Bar > Rig Property Builder",
-    "warning": "In Development",
-    "support": "COMMUNITY",
-    "category": "Scene"
-}
-"""
 
 import bpy
 
@@ -19,6 +6,72 @@ import ast # For string to dictionary evaluations
 
 #Imports Blender Properties ex. BoolProperty
 from bpy.props import *
+
+# options for a single property
+class PROP_BUILDER_property:
+    prefix: bpy.props.StringProperty(name="Prefix", default="")
+    value: bpy.props.StringProperty(name="Value", default="")
+    default: bpy.props.StringProperty(name="Default Value", default="")
+    min: bpy.props.FloatProperty(name="Min", description="Min", default= 0)# , min=0)
+    max: bpy.props.FloatProperty(name="Max", description="Max", default= 1)# , min=0)
+    soft_min: bpy.props.FloatProperty(name="Soft Min", description="Soft Min", default= 0)# , min=0)
+    soft_max: bpy.props.FloatProperty(name="Soft Max", description="Soft Max", default= 1)# , min=0)
+    description: bpy.props.StringProperty(name="Description", description="Description of Custom Property", default="")
+    use_soft_limits: bpy.props.BoolProperty(name="Use Soft Limits", description="Use Soft Limits", default=False)
+    
+
+class PROP_BUILDER_properties(bpy.types.PropertyGroup, PROP_BUILDER_property):
+    name: bpy.props.StringProperty(name="Property Description Note", default="[Property Note]"
+    , description="Name of Property that will be mirrored and generated with Prefixes. Useful for repeating Custom Property names. Ex. armature bones \"Leg.Back.L\" ")
+    # property: bpy.props.CollectionProperty(name="Added Collections to List", type=PROP_BUILDER_property)
+    
+    use: bpy.props.BoolProperty(name="Create this property for the Property Name", description="", default=True)
+
+class PROP_BUILDER_property_names(bpy.types.PropertyGroup):
+    name: bpy.props.StringProperty(name="Property Name", default="[Property Name]"
+    , description="Name of Property that will be mirrored and generated with Prefixes. Useful for repeating Custom Property names. Ex. armature bones \"Leg.Back.L\" ")
+
+
+class PROP_BUILDER_props(bpy.types.PropertyGroup):
+    #collections for custom Property Groups
+    collection_names: bpy.props.CollectionProperty(type=PROP_BUILDER_property_names)
+    collection_properties: bpy.props.CollectionProperty(type=PROP_BUILDER_properties)
+    
+    # Index for collection_names
+    ULIndex_Names: bpy.props.IntProperty(name="String List Index", description="Active UI String List Index", default= 0, min=0)
+    
+    # Index for collection_properties
+    ULIndex_Properties: bpy.props.IntProperty(name="Properties List Index", description="Active UI Properties List Index", default= 0, min=0)
+    
+    # Options
+    replace_existing_props: bpy.props.BoolProperty(name="Replace Existing Custom Properties", description="Replace existing properties with the same name with the new updated values.", default=True)
+    
+    repeating = "Places generated Custom Properites in "
+    
+    listDesc =  [
+    repeating + "Object",
+    repeating + "Object's Data",
+    repeating + "Scene Data",
+    repeating + "Scene Data",
+    repeating + "World Data",
+    repeating + "Custom Data Path. ex. \"bpy.context.object\""
+    ]
+    
+    ## Select where to place Custom Properties
+    custom_prop_placement: bpy.props.EnumProperty(name="Custom Property Placement"
+        , items= [
+        ("OBJECT", "Object", listDesc[0], "OBJECT_DATA", 0),
+        ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
+        ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
+        ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
+        ("CUSTOM", "Custom Path", listDesc[4], "FILE_TEXT", 4),
+        ]
+        , description="Where to calculate and send Custom Properties from Addon", default="DATA")
+        
+    custom_path: bpy.props.StringProperty(name="Property Name", default="bpy.context.object")
+    
+    
+    # END
 
 ## General UI Functions & Operators - TOP
 
@@ -183,13 +236,10 @@ class PROP_BUILDER_OT_general_ui_ops(bpy.types.Operator, customMethods):
             if UI_Index != None:
                 # props.RS_ULIndex_ReGex = UI_Functions(self.collection, self.list_index, self.type)
                 
-                ##print("UI_Index[1]: %d" % (UI_Index) )
                 # getattr(props, self.list_index) = UI_Functions(collection, UI_Index, self.type)
                 new_UI_Index = UI_Functions.UI_Functions(collection, UI_Index, self.type)
                 setattr(props, self.list_index, new_UI_Index )
-                ##print("UI_Index[2]: %d" % (UI_Index) )
             else:
-                ##print("UI_Index[3]: %d" % (UI_Index) )
                 reportString = "List_Index given wasn't found in scene.PPBR_Props"
         else:
             reportString = "Collection given wasn't found in scene.PPBR_Props"
@@ -203,13 +253,14 @@ class PROP_BUILDER_OT_general_ui_ops(bpy.types.Operator, customMethods):
 
 ## General UI Functions & Operators - TOP
 
-class PROP_BUILDER_OT_copy_paste_prop(bpy.types.Operator):
+class PROP_BUILDER_OT_copy_paste_prop(bpy.types.Operator, PROP_BUILDER_property):
     bl_idname = "prop_builder.copy_paste_prop"
     bl_label = "Copy/Paste a selected Custom Property"
     bl_description = "Copies and Paste from a selected Custom Property"
     bl_options = {'UNDO',}
 
     name: bpy.props.StringProperty(default="[DEFAULT VALUE]")
+    """
     prefix: bpy.props.StringProperty(default="")
     value: bpy.props.StringProperty(default="")
     default: bpy.props.StringProperty(default="")
@@ -219,6 +270,7 @@ class PROP_BUILDER_OT_copy_paste_prop(bpy.types.Operator):
     soft_max: bpy.props.FloatProperty(default= 10000)
     description: bpy.props.StringProperty(default="")
     use_soft_limits: bpy.props.BoolProperty(default=False)
+    """
 
     type: bpy.props.StringProperty(default="DEFAULT")
     index: bpy.props.IntProperty(default=0, min=-1)
@@ -331,59 +383,6 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
     def setPlacement(cls, placement=None):
         cls.placement = placement
         return None
-    
-    # checks if String can be converted into a List for Blender Custom Property. Values must be of the same type
-    """
-    def checkIfList(self, string):
-        ##print("Bruh: " + str(string) )
-        # removes "\"" and "[" and "]", then splits from "," to a list
-        string_list = string.strip("[] ").replace(" ", "").replace("\"", "").split(",")
-        ##print("Bruh: " + str(string_list) )
-        for i in enumerate(string_list):
-            # integer
-            try:
-                string_list[i[0]] = int(string_list[i[0]])
-                continue
-            except:
-                pass
-            # float
-            try:
-                string_list[i[0]] = float(string_list[i[0]])
-                continue
-            except:
-                pass
-            # string
-            try:
-                string_list[i[0]] = str(string_list[i[0]])
-                continue
-            except:
-                pass
-                
-        type_previous = string_list[0].__class__.__name__
-        compatible_types = ["int", "float"]
-        is_convertible = True
-        
-        # excludes 1st index
-        for i in string_list[1:]:
-            index_type = i.__class__.__name__
-            if index_type == type_previous or index_type in compatible_types:
-                continue
-            else:
-                is_convertible = False
-                break
-        ##print(string_list)
-        
-        # If types are either (int or float) or just (string), not all 3
-        if is_convertible == True:
-            # string
-            try:
-                string_list = list(string_list)
-                return string_list
-            except:
-                return None
-        else:
-            return None
-        """
             
     # Returns List, Dict, or String
     def checkIf_ListOrDict(self, string):
@@ -408,18 +407,9 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                 else:
                     is_convertible = False
                     break
-            ##print(value)
-            
+
             # If types are either (int or float) or just (string), not all 3
             if is_convertible == True:
-                # string
-                """
-                try:
-                    value = list(value)
-                    return value
-                except:
-                    return None
-                    """
                 return value
             else:
                 return string
@@ -427,26 +417,6 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
             return value
         else:
             return string
-            
-    # checks if String can be converted into a List for Blender Custom Property. Values must be of the same type
-    """
-    def checkIfDict(self, string):
-        start = string.find("{")
-        end = string.rfind("{")
-        ##print(start + ":" + end)
-        ##print("mlggg: " + string)
-        if start != -1 and start < end:
-            
-            try:
-                # string.
-                # value = dict(eval(string) )
-                # string = eval(string)
-                return eval(string)
-            except:
-                # return string
-                pass
-        return string
-    """
     
     # Tries to convert Strings into int, floats, dict, or list for Custom Properties
     def valueConvert(self, string):
@@ -463,24 +433,7 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
             return value
         except:
             pass
-        # dictionary
-        """
-        try:
-            # Uses the "ast" library to convert strings to dictionaries
-            value = ast.literal_eval(string)
-            if value.__class__.__name__ == "dict":
-                return value
-        except:
-            pass
-        # list
-        try:
-            # value = list(string)
-            print("TRASH 2")
-            value = self.checkIfList(string)
-            return value
-        except:
-            pass
-            """
+
         value = self.checkIf_ListOrDict(string )
             
         return value
@@ -976,83 +929,15 @@ class PROP_BUILDER_preferences(bpy.types.AddonPreferences):
             row.operator("wm.url_open", text="Artstation").url = "https://www.artstation.com/johngddr5"
 
 
-# options for a single property
-class PROP_BUILDER_property:
-    prefix: bpy.props.StringProperty(name="Prefix", default="")
-    value: bpy.props.StringProperty(name="Value", default="")
-    default: bpy.props.StringProperty(name="Default Value", default="")
-    min: bpy.props.FloatProperty(name="Min", description="Min", default= -10000)# , min=0)
-    max: bpy.props.FloatProperty(name="Max", description="Max", default= 10000)# , min=0)
-    soft_min: bpy.props.FloatProperty(name="Soft Min", description="Soft Min", default= -10000)# , min=0)
-    soft_max: bpy.props.FloatProperty(name="Soft Max", description="Soft Max", default= 10000)# , min=0)
-    description: bpy.props.StringProperty(name="Description", description="Description of Custom Property", default="")
-    use_soft_limits: bpy.props.BoolProperty(name="Use Soft Limits", description="Use Soft Limits", default=False)
-    
 
-class PROP_BUILDER_properties(bpy.types.PropertyGroup, PROP_BUILDER_property):
-    name: bpy.props.StringProperty(name="Property Description Note", default="[Property Note]"
-    , description="Name of Property that will be mirrored and generated with Prefixes. Useful for repeating Custom Property names. Ex. armature bones \"Leg.Back.L\" ")
-    # property: bpy.props.CollectionProperty(name="Added Collections to List", type=PROP_BUILDER_property)
-    
-    use: bpy.props.BoolProperty(name="Create this property for the Property Name", description="", default=True)
-
-class PROP_BUILDER_property_names(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="Property Name", default="[Property Name]"
-    , description="Name of Property that will be mirrored and generated with Prefixes. Useful for repeating Custom Property names. Ex. armature bones \"Leg.Back.L\" ")
-
-
-class PROP_BUILDER_props(bpy.types.PropertyGroup):
-    # Tries to set collection_parent's default to Master Collection
-    
-    #collections: bpy.props.CollectionProperty(type=PROP_BUILDER_collection_objects)
-    #property_defaults: bpy.props.PointerProperty(type=PROP_BUILDER_property_defaults)
-    #property_defaults2: bpy.props.PointerProperty(type=PROP_BUILDER_property)
-    property_defaults2: bpy.props.PointerProperty(type=PROP_BUILDER_properties)
-    
-
-    collection_names: bpy.props.CollectionProperty(type=PROP_BUILDER_property_names)
-    collection_properties: bpy.props.CollectionProperty(type=PROP_BUILDER_properties)
-    
-    # Index for collection_names
-    ULIndex_Names: bpy.props.IntProperty(name="String List Index", description="Active UI String List Index", default= 0, min=0)
-    
-    # Index for collection_properties
-    ULIndex_Properties: bpy.props.IntProperty(name="Properties List Index", description="Active UI Properties List Index", default= 0, min=0)
-    
-    # Options
-    replace_existing_props: bpy.props.BoolProperty(name="Replace Existing Custom Properties", description="Replace existing properties with the same name with the new updated values.", default=True)
-    
-    repeating = "Places generated Custom Properites in "
-    
-    listDesc =  [
-    repeating + "Object",
-    repeating + "Object's Data",
-    repeating + "Scene Data",
-    repeating + "Scene Data",
-    repeating + "World Data",
-    repeating + "Custom Data Path. ex. \"bpy.context.object\""
-    ]
-    
-    ## Select where to place Custom Properties
-    custom_prop_placement: bpy.props.EnumProperty(name="Custom Property Placement"
-        , items= [
-        ("OBJECT", "Object", listDesc[0], "OBJECT_DATA", 0),
-        ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
-        ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
-        ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
-        ("CUSTOM", "Custom Path", listDesc[4], "FILE_TEXT", 4),
-        ]
-        , description="Where to calculate and send Custom Properties from Addon", default="DATA")
-        
-    custom_path: bpy.props.StringProperty(name="Property Name", default="bpy.context.object")
-    
-    
-    # END
     
     
 # Classes that are registered
 classes = (
-    # customMethods,
+    PROP_BUILDER_properties,
+    PROP_BUILDER_property_names,
+    PROP_BUILDER_props,
+
     PROP_BUILDER_OT_general_ui_ops,
     
     PROP_BUILDER_OT_copy_paste_prop,
@@ -1068,36 +953,6 @@ classes = (
     PROP_BUILDER_PT_property_editor,
     PROP_BUILDER_PT_options,
 
-    PROP_BUILDER_preferences,
-    
-    PROP_BUILDER_properties,
-    PROP_BUILDER_property_names,
-    PROP_BUILDER_props,
+    PROP_BUILDER_preferences
 )
-
-
-"""
-def register():
-    # ut = bpy.utils
-    from bpy.utils import register_class
-    for cls in classes:
-        register_class(cls)
-    
-    # bpy.types.Scene.IM_Collections = bpy.props.CollectionProperty(type=REF_IMAGEAID_Collections)
-    bpy.types.Scene.PPBR_Props = bpy.props.PointerProperty(type=PROP_BUILDER_props)
-    
-    print(PROP_BUILDER_OT_general_ui_ops.__mro__)
-    
-def unregister():
-    # ut = bpy.utils
-    from bpy.utils import unregister_class
-    for cls in reversed(classes):
-        unregister_class(cls)
-    
-    del bpy.types.Scene.PPBR_Props
-    
-if __name__ == "__main__":
-    register()
-    
-"""
 
