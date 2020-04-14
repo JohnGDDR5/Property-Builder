@@ -3,6 +3,7 @@
 import bpy
 
 import ast # For string to dictionary evaluations
+import re # For RegEx
 
 #Imports Blender Properties ex. BoolProperty
 from bpy.props import *
@@ -45,7 +46,7 @@ class PROP_BUILDER_props(bpy.types.PropertyGroup):
     
     # Options
     replace_existing_props: bpy.props.BoolProperty(name="Replace Existing Custom Properties", description="Replace existing properties with the same name with the new updated values.", default=True)
-    generate_flipped: bpy.props.BoolProperty(name="Generate Flipped L/R Properties", description="Property Names with a direction name will also have a flipped equivalent be made.", default=True)
+    generate_flipped: bpy.props.BoolProperty(name="Generate Flipped L/R Properties", description="Property Names with a direction will also have a flipped equivalent be made", default=True)
 
     repeating = "Places generated Custom Properites in "
     
@@ -208,7 +209,7 @@ def flipDirection(string, patternObject):
         
         #1st letter to uppercase
         if wasUpper == True:
-            stringNew.capitalize()
+            stringNew = stringNew.capitalize()
         #single letter or whole word
         if wasSingle == True:
             stringNew = stringNew[0]
@@ -553,14 +554,15 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                     # print("MLG: " + str(PROP_BUILDER_OT_generate_custom_props.getPlacement()) )
                     placement = self.getPlacement()
                     
-                    #patternObject = regexPattern()
+                    #Compiled re.Pattern object
+                    patternObject = regexPattern()
 
                     for i in enumerate(collection_properties):
                     
                         if i[1].use == True:
                             # bpy.context.object["_RNA_UI"] = {"Bruh0": {"min": -1.5, "max": 1.5, "soft_min": 0.5, "use_soft_limits": True} }
                             name_with_prefix = str(i[1].prefix) + active_string.name
-                            """
+                            
                             full_names = [name_with_prefix]
 
                             if props.generate_flipped == True:
@@ -569,30 +571,30 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                                 # Append to name_flipped list
                                 if name_flipped != None:
                                     full_names.append(name_flipped)
-                            """
-
-                            if name_with_prefix not in placement:
-                                placement[name_with_prefix] = self.valueConvert(i[1].value)
-                                
-                                count_new += 1
-                            else:
-                                if props.replace_existing_props == True:
-                                    placement[name_with_prefix] = self.valueConvert(i[1].value)
+                            
+                            for j in full_names:
+                                if j not in placement:
+                                    placement[j] = self.valueConvert(i[1].value)
                                     
-                                # print("Attribute Exists: %s" % (name_with_prefix) )
-                                count_updated += 1
-                            #class 'IDPropertyGroup' is for Custom Properties that are dictionaries
-                            if placement[name_with_prefix].__class__.__name__ != 'IDPropertyGroup':
-                                new_dict = {name_with_prefix: {} }
-                                
-                                # This is where all the generated attributes are placed to be created with "_RNA_UI"
-                                for j in attributes:
-                                    new_dict[name_with_prefix][j] = getattr(i[1], j)
+                                    count_new += 1
+                                else:
+                                    if props.replace_existing_props == True:
+                                        placement[j] = self.valueConvert(i[1].value)
+                                        
+                                    # print("Attribute Exists: %s" % (j) )
+                                    count_updated += 1
+                                #class 'IDPropertyGroup' is for Custom Properties that are dictionaries
+                                if placement[j].__class__.__name__ != 'IDPropertyGroup':
+                                    new_dict = {j: {} }
                                     
-                                placement["_RNA_UI"] = new_dict
-                            else:
-                                ##print("Was a dictionary: %s" % (name_with_prefix) )
-                                pass
+                                    # This is where all the generated attributes are placed to be created with "_RNA_UI"
+                                    for k in attributes:
+                                        new_dict[j][k] = getattr(i[1], k)
+                                        
+                                    placement["_RNA_UI"] = new_dict
+                                else:
+                                    ##print("Was a dictionary: %s" % (j) )
+                                    pass
 
                     self.addCount(count_new, count_updated)
 
@@ -950,9 +952,16 @@ class PROP_BUILDER_PT_options(bpy.types.Panel, customMethods):
         col = layout.column()
         
         row = col.row(align=True)
+        row.label(text="Generated Properties")
+
+        row = col.row(align=True)
         # row.label(text="Add Button to 3D Viewport Header?")
-        row.prop(props, "replace_existing_props", expand=True, text="Update Existng Properties")
-            
+        row.prop(props, "replace_existing_props", expand=True, text="Update Existng")
+
+        row = col.row(align=True)
+        # row.label(text="Add Button to 3D Viewport Header?")
+        row.prop(props, "generate_flipped", expand=True, text="Generate Flipped L/R")
+        
 
 
 class PROP_BUILDER_preferences(bpy.types.AddonPreferences):
@@ -981,6 +990,7 @@ class PROP_BUILDER_preferences(bpy.types.AddonPreferences):
             row.prop(props, "replace_existing_props", expand=True, text="Replace/Update Existng Properties")
             
             row = col.row(align=True)
+            row.prop(props, "generate_flipped", expand=True, text="Generate Flipped L/R Properties")
             
         elif self.ui_tab == "ABOUT":
             row = col.row(align=True)
