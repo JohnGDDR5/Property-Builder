@@ -9,9 +9,9 @@ from bpy.props import *
 
 # options for a single property
 class PROP_BUILDER_property:
-    prefix: bpy.props.StringProperty(name="Prefix", default="")
-    value: bpy.props.StringProperty(name="Value", default="")
-    default: bpy.props.StringProperty(name="Default Value", default="")
+    prefix: bpy.props.StringProperty(name="Prefix", default="", description="Added before Property Name")
+    value: bpy.props.StringProperty(name="Value", default="1.0")
+    default: bpy.props.StringProperty(name="Default Value", default="1.0")
     min: bpy.props.FloatProperty(name="Min", description="Min", default= 0)# , min=0)
     max: bpy.props.FloatProperty(name="Max", description="Max", default= 1)# , min=0)
     soft_min: bpy.props.FloatProperty(name="Soft Min", description="Soft Min", default= 0)# , min=0)
@@ -45,7 +45,8 @@ class PROP_BUILDER_props(bpy.types.PropertyGroup):
     
     # Options
     replace_existing_props: bpy.props.BoolProperty(name="Replace Existing Custom Properties", description="Replace existing properties with the same name with the new updated values.", default=True)
-    
+    generate_flipped: bpy.props.BoolProperty(name="Generate Flipped L/R Properties", description="Property Names with a direction name will also have a flipped equivalent be made.", default=True)
+
     repeating = "Places generated Custom Properites in "
     
     listDesc =  [
@@ -171,6 +172,59 @@ class UI_Functions:
         ##print("UI_Functions: { type: %s, UI_Index: %d }" % (type, UI_Index) )
         return int(UI_Index)
 
+#Returns re.Pattern Object, precompiled
+def regexPattern():
+    #Pattern used for left/right
+    pattern = r'(?i)(?<=[ \.\-_])[rRlL]((?=$|[ \.\-_])|(ight|eft))'
+
+    #rawPattern = r'%s' % (pattern)
+    #p = re.compile(rawPattern)
+    p = re.compile(pattern)
+    return p
+
+#Requires a patternObject, so it won't have to recompile it
+def flipDirection(string, patternObject):
+    #Will return "l" or "r"
+    #print("getDirection(): %s" % (string) )
+    #p = regexPattern()
+    p = patternObject
+
+    match = p.search(string)
+    #indexes of match ex. (5, 7)
+    span = match.span()
+
+    if match is not None:
+        matchString = match.group(0)
+        #sides = ("left", "right")
+        direction = {"l": "right", "r": "left"}
+        #stringNew = string
+        #stringNew = matchString
+        lowered = matchString[0].lower()
+        wasUpper = matchString[0].isupper()
+        wasSingle = (len(matchString) == 1)
+
+        #changes the direction
+        stringNew = direction[lowered]
+        
+        #1st letter to uppercase
+        if wasUpper == True:
+            stringNew.capitalize()
+        #single letter or whole word
+        if wasSingle == True:
+            stringNew = stringNew[0]
+                
+        print("getDirection(): %s, %s" % (matchString, stringNew) )
+
+        #Replaces match section of String with the flipped one
+        string = string[:span[0]] + stringNew + string[span[1]:]
+
+        return string
+    else:
+        print("getDirection(): Match Fail for %s" % (string) )
+        #return ""
+        return None
+    
+
 class PROP_BUILDER_OT_general_ui_ops(bpy.types.Operator, customMethods):
     bl_idname = "prop_builder.general_ui_ops"
     bl_label = "General UI List Operators/Functions"
@@ -260,17 +314,6 @@ class PROP_BUILDER_OT_copy_paste_prop(bpy.types.Operator, PROP_BUILDER_property)
     bl_options = {'UNDO',}
 
     name: bpy.props.StringProperty(default="[DEFAULT VALUE]")
-    """
-    prefix: bpy.props.StringProperty(default="")
-    value: bpy.props.StringProperty(default="")
-    default: bpy.props.StringProperty(default="")
-    min: bpy.props.FloatProperty(default= -10000)
-    max: bpy.props.FloatProperty(default= 10000)
-    soft_min: bpy.props.FloatProperty(default= -10000)
-    soft_max: bpy.props.FloatProperty(default= 10000)
-    description: bpy.props.StringProperty(default="")
-    use_soft_limits: bpy.props.BoolProperty(default=False)
-    """
 
     type: bpy.props.StringProperty(default="DEFAULT")
     index: bpy.props.IntProperty(default=0, min=-1)
@@ -510,12 +553,24 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                     # print("MLG: " + str(PROP_BUILDER_OT_generate_custom_props.getPlacement()) )
                     placement = self.getPlacement()
                     
+                    #patternObject = regexPattern()
+
                     for i in enumerate(collection_properties):
                     
                         if i[1].use == True:
                             # bpy.context.object["_RNA_UI"] = {"Bruh0": {"min": -1.5, "max": 1.5, "soft_min": 0.5, "use_soft_limits": True} }
                             name_with_prefix = str(i[1].prefix) + active_string.name
-                            
+                            """
+                            full_names = [name_with_prefix]
+
+                            if props.generate_flipped == True:
+                                name_flipped = flipDirection(name_with_prefix, patternObject)
+
+                                # Append to name_flipped list
+                                if name_flipped != None:
+                                    full_names.append(name_flipped)
+                            """
+
                             if name_with_prefix not in placement:
                                 placement[name_with_prefix] = self.valueConvert(i[1].value)
                                 
@@ -526,7 +581,7 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                                     
                                 # print("Attribute Exists: %s" % (name_with_prefix) )
                                 count_updated += 1
-                                
+                            #class 'IDPropertyGroup' is for Custom Properties that are dictionaries
                             if placement[name_with_prefix].__class__.__name__ != 'IDPropertyGroup':
                                 new_dict = {name_with_prefix: {} }
                                 
@@ -538,7 +593,11 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                             else:
                                 ##print("Was a dictionary: %s" % (name_with_prefix) )
                                 pass
+
                     self.addCount(count_new, count_updated)
+
+                    #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
+                    placement["_RNA_UI"].clear()
                     return None
                     
                 if self.type == "DEFAULT":
@@ -640,6 +699,7 @@ class PROP_BUILDER_MT_dropdown_menu_ui_generate(bpy.types.Menu):
     # here you specify how they are drawn
     def draw(self, context):
         layout = self.layout
+
         scene = context.scene
         data = bpy.data
         props = scene.PPBR_Props
@@ -902,6 +962,7 @@ class PROP_BUILDER_preferences(bpy.types.AddonPreferences):
     
     def draw(self, context):
         layout = self.layout
+
         scene = context.scene
         props = scene.PPBR_Props
         
@@ -929,9 +990,6 @@ class PROP_BUILDER_preferences(bpy.types.AddonPreferences):
             row.operator("wm.url_open", text="Artstation").url = "https://www.artstation.com/johngddr5"
 
 
-
-    
-    
 # Classes that are registered
 classes = (
     PROP_BUILDER_properties,
