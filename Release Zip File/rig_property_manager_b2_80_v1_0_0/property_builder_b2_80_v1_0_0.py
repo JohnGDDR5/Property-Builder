@@ -68,9 +68,31 @@ class PROP_BUILDER_props(bpy.types.PropertyGroup):
         ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
         ("CUSTOM", "Custom Path", listDesc[4], "FILE_TEXT", 4),
         ]
-        , description="Where to calculate and send Custom Properties from Addon", default="DATA")
+        , description="Where to calculate and send Custom Properties from Addon", default="OBJECT")
         
     custom_path: bpy.props.StringProperty(name="Property Name", default="bpy.context.object")
+
+    ## Where to Transfer Custom Properties From
+    transfer_from: bpy.props.EnumProperty(name="Transfer Custom Properties From"
+        , items= [
+        ("OBJECT", "Object", listDesc[0], "OBJECT_DATA", 0),
+        ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
+        ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
+        ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
+        ("CUSTOM", "Custom Path", listDesc[4], "FILE_TEXT", 4),
+        ]
+        , description="Where to Duplicate Custom Properties from", default="OBJECT")
+
+    ## Where to Transfer Custom Properties From
+    transfer_to: bpy.props.EnumProperty(name="Transfer Custom Properties To"
+        , items= [
+        ("OBJECT", "Object", listDesc[0], "OBJECT_DATA", 0),
+        ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
+        ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
+        ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
+        ("CUSTOM", "Custom Path", listDesc[4], "FILE_TEXT", 4),
+        ]
+        , description="Where to Duplicate Custom Properties to", default="OBJECT")
     
     
     # END
@@ -191,10 +213,11 @@ def flipDirection(string, patternObject):
     p = patternObject
 
     match = p.search(string)
-    #indexes of match ex. (5, 7)
-    span = match.span()
 
     if match is not None:
+        #indexes of match ex. (5, 7)
+        span = match.span()
+
         matchString = match.group(0)
         #sides = ("left", "right")
         direction = {"l": "right", "r": "left"}
@@ -627,6 +650,316 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                     reportString = "No World Found"
                 else:
                     reportString = "Couldn\'t evaluate custom path. Check Console."
+        else:
+            reportString = "No Property Names to generate from"
+            
+        self.report({'INFO'}, reportString)
+        
+        self.type = "DEFAULT"
+        
+        return {'FINISHED'}
+
+class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
+    bl_idname = "prop_builder.transfer_custom_props"
+    bl_label = "Transfer Custom Properties"
+    bl_description = "Bruh"
+    bl_options = {'UNDO',}
+    type: bpy.props.StringProperty(default="DEFAULT")
+    index: bpy.props.IntProperty(default=0, min=0)
+    
+    # class variables to count how many new Custom Properties were made
+    count_new = 0
+    count_updated = 0
+    
+    # Temporary Class variable where Custom Properties are Transfered "From" & "To"
+    placement_to = None
+    placement_from = None
+    
+    @classmethod
+    def resetDefaults(cls):
+        cls.type = "DEFAULT"
+        cls.index = 0
+        return None
+    
+    @classmethod
+    def getCount(cls):
+        return [cls.count_new, cls.count_updated]
+        
+    @classmethod
+    def setCount(cls, count_new=None, count_updated=None):
+        if count_new != None:
+            cls.count_new = count_new 
+        if count_updated != None:
+            cls.count_updated = count_updated
+        return None
+    
+    @classmethod
+    def addCount(cls, count_new=None, count_updated=None):
+        if count_new != None:
+            cls.count_new += count_new 
+        if count_updated != None:
+            cls.count_updated += count_updated
+        return None
+        
+    @classmethod
+    def resetCount(cls):
+        cls.count_new = 0
+        cls.count_updated = 0
+        cls.placement_to = None
+        return None
+        
+    @classmethod
+    def getPlacementTo(cls):
+        return cls.placement_to
+        
+    @classmethod
+    def setPlacementTo(cls, placement_to=None):
+        cls.placement_to = placement_to
+        return None
+        
+    @classmethod
+    def getPlacementFrom(cls):
+        return cls.placement_from
+        
+    @classmethod
+    def setPlacementFrom(cls, placement_from=None):
+        cls.placement_from = placement_from
+        return None
+            
+    # Returns List, Dict, or String
+    def checkIf_ListOrDict(self, string):
+        try:
+            value = ast.literal_eval(string)
+        except:
+            return string
+            
+        value_type = type(value ).__name__
+        
+        # If list, must check if it is only of types (ints, floats) or only strings, not both
+        if value_type == "list":
+            type_previous = type(value[0] ).__name__
+            compatible_types = ["int", "float"]
+            is_convertible = True
+            
+            # excludes 1st index
+            for i in value[1:]:
+                index_type = type(i ).__name__
+                if index_type == type_previous or index_type in compatible_types:
+                    continue
+                else:
+                    is_convertible = False
+                    break
+
+            # If types are either (int or float) or just (string), not all 3
+            if is_convertible == True:
+                return value
+            else:
+                return string
+        elif value_type == "dict":
+            return value
+        else:
+            return string
+    
+    # Tries to convert Strings into int, floats, dict, or list for Custom Properties
+    def valueConvert(self, string):
+        value = string
+        # int
+        try:
+            value = int(string)
+            return value
+        except:
+            pass
+        # float
+        try:
+            value = float(string)
+            return value
+        except:
+            pass
+
+        value = self.checkIf_ListOrDict(string )
+            
+        return value
+        
+    # To prevent unsafe evaluations and also to be able to add Custom Property to objects with .bl_rna
+    def evalSafety(self, string):
+        object = None
+        # bpy.context.object.data.bones.active.bl_rna.__module__
+        # Returns 'bpy_types' or 'bpy.types'
+        should_have = ["bpy_types", "bl.types"]
+
+        #Should start with bpy, to prevent malicious code
+        if string.startswith("bpy"):
+            try:
+                object = eval(string)
+            except:
+                pass#object = None
+            
+            if hasattr(object, "bl_rna") == True:
+                if getattr(object.bl_rna, "__module__") in should_have:
+                    print("Successful evaluation of path: \" %s \"" % (string) )
+                    pass
+                else:
+                    object = None
+                    print("path \" %s \" isn\"t or already in \"__module__\" from \"bpy_types\" " % (string) )
+            else:
+                print("path \" %s \" can't be evaluated or already in \"bl_rna\" from \"bpy_types\" " % (string) )
+            
+        return object
+    
+    def execute(self, context):
+        scene = bpy.context.scene
+        props = scene.PPBR_Props
+        
+        reportString = "Done"
+        print("OOF: -1")
+        
+        attributes = [
+            "default",
+            "min",
+            "max",
+            "soft_min",
+            "soft_max",
+            "description",
+            "use_soft_limits",
+            ]
+        
+        if len(props.collection_names) > 0:
+            
+            # Where to Transfer Custom Properties To
+            if props.transfer_from == "OBJECT":
+                self.setPlacementFrom( context.object )
+            elif props.transfer_from == "DATA":
+                self.setPlacementFrom( context.object.data )
+            elif props.transfer_from == "SCENE":
+                self.setPlacementFrom( context.scene )
+            elif props.transfer_from == "WORLD":
+                self.setPlacementFrom( context.scene.world )
+            #Will be set to "CUSTOM"
+            else:
+                self.setPlacementFrom( self.evalSafety(props.custom_path) )
+            
+            # Where to Transfer Custom Properties From
+            if props.transfer_to == "OBJECT":
+                self.setPlacementTo( context.object )
+            elif props.transfer_to == "DATA":
+                self.setPlacementTo( context.object.data )
+            elif props.transfer_to == "SCENE":
+                self.setPlacementTo( context.scene )
+            elif props.transfer_to == "WORLD":
+                self.setPlacementTo( context.scene.world )
+            #Will be set to "CUSTOM"
+            else:
+                self.setPlacementTo( self.evalSafety(props.custom_path) )
+                
+                
+            if self.getPlacementFrom() != None and self.getPlacementTo() != None:
+                if self.getPlacementFrom() != self.getPlacementTo():
+                    
+                    exclude_from = ["_RNA_UI", "cycles_visibility", "cycles"]
+                    
+                    properties_from = placement_from.keys()
+                    
+                    for i in properties_from:
+                        if i in exclude_from:
+                            properties_from.pop(i)
+                    
+                    def generateProperties(placement_from, placement_to):
+                        #placement_from = object
+                        #placement_to = object
+                        
+                        count_new = 0
+                        count_updated = 0
+
+                        for i in enumerate(properties_from):
+                            # If prop already existed
+                            if i[1] in placement_to == True:
+                                # If replacing existing is on
+                                if props.replace_existing_props == True:
+                                    del placement_to[ i[1] ]
+                                    placement_to[ i[1] ] = placement_from[ i[1] ]
+                                    count_updated += 1
+                                else:
+                                    continue
+                            else:   
+                                placement_to[ i[1] ] = placement_from[ i[1] ]
+                                
+                                count_new += 1
+                                
+                            placement_to["_RNA_UI"].clear()
+
+                        self.addCount(count_new, count_updated)
+
+                        #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
+                        placement_from["_RNA_UI"].clear()
+                        return None
+                        
+                    def getUniqueObjectData(objects):
+                        models = {objects.data for ob in objects}
+                        return list(models)
+                        
+                    if placement_from == "OBJECT":
+                    
+                        selected_objects = context.selected_objects
+                        
+                        # Remove Active object from Selected Object list
+                        if placement_to == "OBJECT":
+                            if placement_from in selected_objects:
+                                selected_objects.remove(placement_from)
+                            
+                        for i in selected_objects:
+                            generateProperties(placement_from, i)
+                            
+                    elif placement_from == "DATA":
+                    
+                        selected_objects = getUniqueObjectData(context.selected_objects )
+                        
+                        # Remove Active object from Selected Object list
+                        if placement_to == "OBJECT":
+                            if placement_from.data in selected_objects:
+                                selected_objects.remove(placement_from.data)
+                            
+                        for i in selected_objects:
+                            generateProperties(placement_from, i)
+                    else:
+                    
+                        for i in enumerate(props.collection_names):
+                            active_string = props.collection_names[i[0]]
+                            
+                            generateProperties(props.collection_properties, active_string)
+                            
+                    reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
+                    
+                    self.resetCount()
+                else:
+                    reportString = "Transferring From and To are the same location."
+                
+            # Just error statements
+            else:
+                has_active_ob = bpy.context.active_object != None
+                has_selected_ob = len(bpy.context.selected_objects) > len(bpy.context.active_object)
+                
+                if self.getPlacementFrom() == None:
+                    if props.transfer_to == "OBJECT":
+                        reportString = "No Active Objects"
+                    elif props.transfer_to == "DATA":
+                        reportString = "No Active Object"
+                    elif props.transfer_to == "SCENE":
+                        reportString = "No Scene Found"
+                    elif props.transfer_to == "WORLD":
+                        reportString = "No World Found"
+                    else:
+                        reportString = "Couldn\'t evaluate custom path. Check Console."
+                elif self.getPlacementTo() == None:
+                    if props.transfer_to == "OBJECT":
+                        reportString = "No Selected Object"
+                    elif props.transfer_to == "DATA":
+                        reportString = "No Selected Object"
+                    elif props.transfer_to == "SCENE":
+                        reportString = "No Scene Found"
+                    elif props.transfer_to == "WORLD":
+                        reportString = "No World Found"
+                    else:
+                        reportString = "Couldn\'t evaluate custom path. Check Console."
         else:
             reportString = "No Property Names to generate from"
             
