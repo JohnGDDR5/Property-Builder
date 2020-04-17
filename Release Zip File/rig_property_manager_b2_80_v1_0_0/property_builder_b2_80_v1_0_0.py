@@ -881,6 +881,14 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
             else:
                 self.setPlacementTo( self.evalSafety(props.custom_path) )
                 
+            #This is for Mode Sensitive Stuff
+            """
+            bpy.context.selected_pose_bones[0].bone
+            Results bpy.data.armatures['Armature'].bones["Bone"]
+
+            bpy.context.selected_pose_bones[0]
+            Results bpy.data.objects['Armature'].pose.bones["Bone"]
+            """
                 
             if self.getPlacementFrom() != None and self.getPlacementTo() != None:
                 if self.getPlacementFrom() != self.getPlacementTo():
@@ -994,6 +1002,10 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                         reportString = "No Scene Found"
                     elif props.transfer_to == "WORLD":
                         reportString = "No World Found"
+                    elif props.transfer_to == "POSE":
+                        reportString = "No Pose Bone Found"
+                    elif props.transfer_to == "BONE":
+                        reportString = "No Armature Bone Found"
                     else:
                         reportString = "Couldn\'t evaluate custom path. Check Console."
                 elif self.getPlacementTo() == None:
@@ -1005,6 +1017,10 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                         reportString = "No Scene Found"
                     elif props.transfer_to == "WORLD":
                         reportString = "No World Found"
+                    elif props.transfer_to == "POSE":
+                        reportString = "No Pose Bone Found"
+                    elif props.transfer_to == "BONE":
+                        reportString = "No Armature Bone Found"
                     else:
                         reportString = "Couldn\'t evaluate custom path. Check Console."
         else:
