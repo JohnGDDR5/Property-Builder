@@ -27,6 +27,7 @@ from . property_builder_b2_80_v1_0_0 import (
     
     PROP_BUILDER_OT_copy_paste_prop,
     PROP_BUILDER_OT_generate_custom_props,
+    PROP_BUILDER_OT_transfer_custom_props,
 
     PROP_BUILDER_UL_items_strings,
     PROP_BUILDER_UL_items_properties,
@@ -34,6 +35,7 @@ from . property_builder_b2_80_v1_0_0 import (
     PROP_BUILDER_MT_dropdown_menu_ui_generate,
     PROP_BUILDER_MT_dropdown_menu_ui_properties,
     
+    PROP_BUILDER_PT_transfer_props,
     PROP_BUILDER_PT_custom_panel1,
     PROP_BUILDER_PT_property_editor,
     PROP_BUILDER_PT_options,
@@ -52,6 +54,7 @@ classes = (
     
     PROP_BUILDER_OT_copy_paste_prop,
     PROP_BUILDER_OT_generate_custom_props,
+    PROP_BUILDER_OT_transfer_custom_props,
 
     PROP_BUILDER_UL_items_strings,
     PROP_BUILDER_UL_items_properties,
@@ -59,6 +62,7 @@ classes = (
     PROP_BUILDER_MT_dropdown_menu_ui_generate,
     PROP_BUILDER_MT_dropdown_menu_ui_properties,
     
+    PROP_BUILDER_PT_transfer_props,
     PROP_BUILDER_PT_custom_panel1,
     PROP_BUILDER_PT_property_editor,
     PROP_BUILDER_PT_options,

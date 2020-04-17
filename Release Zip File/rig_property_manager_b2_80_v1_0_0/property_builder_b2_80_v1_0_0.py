@@ -56,6 +56,8 @@ class PROP_BUILDER_props(bpy.types.PropertyGroup):
     repeating + "Scene Data",
     repeating + "Scene Data",
     repeating + "World Data",
+    repeating + "Pose Bone Data",
+    repeating + "Armature Bone Data",
     repeating + "Custom Data Path. ex. \"bpy.context.object\""
     ]
     
@@ -66,7 +68,9 @@ class PROP_BUILDER_props(bpy.types.PropertyGroup):
         ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
         ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
         ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
-        ("CUSTOM", "Custom Path", listDesc[4], "FILE_TEXT", 4),
+        ("POSE", "Pose Bone", listDesc[4], "ARMATURE_DATA", 4),
+        ("BONE", "Armature Bone", listDesc[5], "BONE_DATA", 5),
+        ("CUSTOM", "Custom Path", listDesc[6], "FILE_TEXT", 6),
         ]
         , description="Where to calculate and send Custom Properties from Addon", default="OBJECT")
         
@@ -79,7 +83,9 @@ class PROP_BUILDER_props(bpy.types.PropertyGroup):
         ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
         ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
         ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
-        ("CUSTOM", "Custom Path", listDesc[4], "FILE_TEXT", 4),
+        ("POSE", "Pose Bone", listDesc[4], "ARMATURE_DATA", 4),
+        ("BONE", "Armature Bone", listDesc[5], "BONE_DATA", 5),
+        ("CUSTOM", "Custom Path", listDesc[6], "FILE_TEXT", 6),
         ]
         , description="Where to Duplicate Custom Properties from", default="OBJECT")
 
@@ -90,7 +96,9 @@ class PROP_BUILDER_props(bpy.types.PropertyGroup):
         ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
         ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
         ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
-        ("CUSTOM", "Custom Path", listDesc[4], "FILE_TEXT", 4),
+        ("POSE", "Pose Bone", listDesc[4], "ARMATURE_DATA", 4),
+        ("BONE", "Armature Bone", listDesc[5], "BONE_DATA", 5),
+        ("CUSTOM", "Custom Path", listDesc[6], "FILE_TEXT", 6),
         ]
         , description="Where to Duplicate Custom Properties to", default="OBJECT")
     
@@ -559,6 +567,12 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                 self.setPlacement( context.scene )
             elif props.custom_prop_placement == "WORLD":
                 self.setPlacement( context.scene.world )
+            # Edit Mode Bone Data
+            elif props.custom_prop_placement == "POSE":
+                self.setPlacement( context.active_pose_bone )
+            # Pose Mode Bone Data
+            elif props.custom_prop_placement == "BONE":
+                self.setPlacement( context.active_bone )
             #Will be set to "CUSTOM"
             else:
                 self.setPlacement( self.evalSafety(props.custom_path) )
@@ -648,6 +662,10 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                     reportString = "No Scene Found"
                 elif props.custom_prop_placement == "WORLD":
                     reportString = "No World Found"
+                elif props.custom_prop_placement == "POSE":
+                    reportString = "No Pose Bone Found"
+                elif props.custom_prop_placement == "BONE":
+                    reportString = "No Armature Bone Found"
                 else:
                     reportString = "Couldn\'t evaluate custom path. Check Console."
         else:
@@ -825,7 +843,7 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
         
         if len(props.collection_names) > 0:
             
-            # Where to Transfer Custom Properties To
+            # Where to Transfer Custom Properties From
             if props.transfer_from == "OBJECT":
                 self.setPlacementFrom( context.object )
             elif props.transfer_from == "DATA":
@@ -834,11 +852,17 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                 self.setPlacementFrom( context.scene )
             elif props.transfer_from == "WORLD":
                 self.setPlacementFrom( context.scene.world )
+            # Edit Mode Bone Data
+            elif props.transfer_from == "POSE":
+                self.setPlacement( context.active_pose_bone )
+            # Pose Mode Bone Data
+            elif props.transfer_from == "BONE":
+                self.setPlacement( context.active_bone )
             #Will be set to "CUSTOM"
             else:
                 self.setPlacementFrom( self.evalSafety(props.custom_path) )
             
-            # Where to Transfer Custom Properties From
+            # Where to Transfer Custom Properties To
             if props.transfer_to == "OBJECT":
                 self.setPlacementTo( context.object )
             elif props.transfer_to == "DATA":
@@ -847,6 +871,12 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                 self.setPlacementTo( context.scene )
             elif props.transfer_to == "WORLD":
                 self.setPlacementTo( context.scene.world )
+            # Edit Mode Bone Data
+            elif props.transfer_to == "POSE":
+                self.setPlacement( context.active_pose_bone )
+            # Pose Mode Bone Data
+            elif props.transfer_to == "BONE":
+                self.setPlacement( context.active_bone )
             #Will be set to "CUSTOM"
             else:
                 self.setPlacementTo( self.evalSafety(props.custom_path) )
@@ -857,8 +887,9 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                     
                     exclude_from = ["_RNA_UI", "cycles_visibility", "cycles"]
                     
-                    properties_from = placement_from.keys()
+                    properties_from = self.getPlacementFrom().keys()
                     
+                    # Removes exclude_from string from properties_from
                     for i in properties_from:
                         if i in exclude_from:
                             properties_from.pop(i)
@@ -897,37 +928,36 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                         models = {objects.data for ob in objects}
                         return list(models)
                         
-                    if placement_from == "OBJECT":
+                    if self.getPlacementFrom() == "OBJECT":
                     
                         selected_objects = context.selected_objects
                         
                         # Remove Active object from Selected Object list
-                        if placement_to == "OBJECT":
-                            if placement_from in selected_objects:
-                                selected_objects.remove(placement_from)
+                        if self.getPlacementTo() == "OBJECT":
+                            if self.getPlacementFrom() in selected_objects:
+                                selected_objects.remove(self.getPlacementFrom() )
                             
-                        for i in selected_objects:
-                            generateProperties(placement_from, i)
-                            
-                    elif placement_from == "DATA":
+                    elif self.getPlacementFrom() == "DATA":
                     
                         selected_objects = getUniqueObjectData(context.selected_objects )
                         
                         # Remove Active object from Selected Object list
-                        if placement_to == "OBJECT":
-                            if placement_from.data in selected_objects:
-                                selected_objects.remove(placement_from.data)
-                            
-                        for i in selected_objects:
-                            generateProperties(placement_from, i)
+                        if self.getPlacementTo() == "OBJECT":
+                            if self.getPlacementFrom().data in selected_objects:
+                                selected_objects.remove(self.getPlacementFrom().data)
+                        elif self.getPlacementTo() == "DATA":
+                            if self.getPlacementFrom() in selected_objects:
+                                selected_objects.remove(self.getPlacementFrom() )
                     else:
-                    
-                        for i in enumerate(props.collection_names):
-                            active_string = props.collection_names[i[0]]
-                            
-                            generateProperties(props.collection_properties, active_string)
-                            
-                    reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
+                        selected_objects = self.getPlacementTo()
+
+                    if len(selected_objects) > 0:
+                        for i in selected_objects:
+                            generateProperties(self.getPlacementFrom(), i)
+
+                        reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
+                    else:
+                        reportString = "Objects were the same"
                     
                     self.resetCount()
                 else:
@@ -935,8 +965,8 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                 
             # Just error statements
             else:
-                has_active_ob = bpy.context.active_object != None
-                has_selected_ob = len(bpy.context.selected_objects) > len(bpy.context.active_object)
+                #has_active_ob = bpy.context.active_object != None
+                #has_selected_ob = len(bpy.context.selected_objects) > len(bpy.context.active_object)
                 
                 if self.getPlacementFrom() == None:
                     if props.transfer_to == "OBJECT":
@@ -1074,6 +1104,42 @@ class PROP_BUILDER_MT_dropdown_menu_ui_properties(bpy.types.Menu, customMethods)
         button = col.operator("prop_builder.general_ui_ops", text="Duplicate", icon="DUPLICATE")
         self.setAttributes(button, properties)
         button.type = "DUPLICATE"
+
+class PROP_BUILDER_PT_transfer_props(bpy.types.Panel, customMethods):
+    # A Custom Panel in Viewport
+    bl_idname = "PROP_BUILDER_PT_transfer_props"
+    bl_label = "Property Transfer"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = 'UI'
+    # bl_context = "output"
+    bl_category = "Prop Build"
+    
+    # collectionOOF: bpy.props.PointerProperty(name="Added Collections to List", type=bpy.types.Collection)
+    
+    # draw function
+    def draw(self, context):
+                 
+        layout = self.layout
+        scene = context.scene
+        props = scene.PPBR_Props
+        
+        # Layout Starts
+        col = layout.column()
+        
+        # Active Collection
+        row = col.row(align=True)
+        row.label(text="Transfer Properties:")
+        
+        row = col.row(align=True)
+        row.prop(props, "transfer_from", text="From", expand=False)
+        
+        row = col.row(align=True)
+        row.prop(props, "transfer_to", text="To", expand=False)
+        
+        row = col.row(align=True)
+        row.operator("prop_builder.transfer_custom_props", text="Transfer", icon="TRIA_DOWN")
+        
+        # End of CustomPanel
 
 class PROP_BUILDER_PT_custom_panel1(bpy.types.Panel, customMethods):
     # A Custom Panel in Viewport
@@ -1343,6 +1409,7 @@ classes = (
     
     PROP_BUILDER_OT_copy_paste_prop,
     PROP_BUILDER_OT_generate_custom_props,
+    PROP_BUILDER_OT_transfer_custom_props,
 
     PROP_BUILDER_UL_items_strings,
     PROP_BUILDER_UL_items_properties,
@@ -1350,6 +1417,7 @@ classes = (
     PROP_BUILDER_MT_dropdown_menu_ui_generate,
     PROP_BUILDER_MT_dropdown_menu_ui_properties,
     
+    PROP_BUILDER_PT_transfer_props,
     PROP_BUILDER_PT_custom_panel1,
     PROP_BUILDER_PT_property_editor,
     PROP_BUILDER_PT_options,
