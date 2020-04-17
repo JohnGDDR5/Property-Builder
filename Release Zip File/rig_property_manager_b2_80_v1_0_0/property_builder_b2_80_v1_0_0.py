@@ -854,10 +854,10 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                 self.setPlacementFrom( context.scene.world )
             # Edit Mode Bone Data
             elif props.transfer_from == "POSE":
-                self.setPlacement( context.active_pose_bone )
+                self.setPlacementFrom( context.active_pose_bone )
             # Pose Mode Bone Data
             elif props.transfer_from == "BONE":
-                self.setPlacement( context.active_bone )
+                self.setPlacementFrom( context.active_bone )
             #Will be set to "CUSTOM"
             else:
                 self.setPlacementFrom( self.evalSafety(props.custom_path) )
@@ -873,10 +873,10 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                 self.setPlacementTo( context.scene.world )
             # Edit Mode Bone Data
             elif props.transfer_to == "POSE":
-                self.setPlacement( context.active_pose_bone )
+                self.setPlacementTo( context.selected_pose_bones )
             # Pose Mode Bone Data
             elif props.transfer_to == "BONE":
-                self.setPlacement( context.active_bone )
+                self.setPlacementTo( context.selected_bones )
             #Will be set to "CUSTOM"
             else:
                 self.setPlacementTo( self.evalSafety(props.custom_path) )
@@ -892,7 +892,7 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                     # Removes exclude_from string from properties_from
                     for i in properties_from:
                         if i in exclude_from:
-                            properties_from.pop(i)
+                            properties_from.remove(i)
                     
                     def generateProperties(placement_from, placement_to):
                         #placement_from = object
@@ -928,26 +928,43 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                         models = {objects.data for ob in objects}
                         return list(models)
                         
-                    if self.getPlacementFrom() == "OBJECT":
+                    if props.transfer_from == "OBJECT":
                     
                         selected_objects = context.selected_objects
                         
                         # Remove Active object from Selected Object list
-                        if self.getPlacementTo() == "OBJECT":
+                        if props.transfer_to == "OBJECT":
                             if self.getPlacementFrom() in selected_objects:
                                 selected_objects.remove(self.getPlacementFrom() )
                             
-                    elif self.getPlacementFrom() == "DATA":
+                    elif props.transfer_from == "DATA":
                     
                         selected_objects = getUniqueObjectData(context.selected_objects )
                         
                         # Remove Active object from Selected Object list
-                        if self.getPlacementTo() == "OBJECT":
+                        if props.transfer_to == "OBJECT":
                             if self.getPlacementFrom().data in selected_objects:
                                 selected_objects.remove(self.getPlacementFrom().data)
-                        elif self.getPlacementTo() == "DATA":
+                        elif props.transfer_to == "DATA":
                             if self.getPlacementFrom() in selected_objects:
                                 selected_objects.remove(self.getPlacementFrom() )
+
+                    elif props.transfer_from == "POSE":
+                        selected_objects = context.selected_pose_bones
+
+                        # Remove Active object from Selected Object list
+                        if props.transfer_to == "POSE":
+                            if self.getPlacementFrom() in selected_objects:
+                                selected_objects.remove(self.getPlacementFrom())
+
+                    elif props.transfer_from == "BONE":
+                        selected_objects = context.selected_bones
+
+                        # Remove Active object from Selected Object list
+                        if props.transfer_to == "BONE":
+                            if self.getPlacementFrom() in selected_objects:
+                                selected_objects.remove(self.getPlacementFrom())
+
                     else:
                         selected_objects = self.getPlacementTo()
 
