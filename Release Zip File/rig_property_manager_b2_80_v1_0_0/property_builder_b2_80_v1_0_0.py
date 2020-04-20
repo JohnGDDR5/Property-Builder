@@ -841,190 +841,224 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
             "use_soft_limits",
             ]
         
-        if len(props.collection_names) > 0:
-            
-            # Where to Transfer Custom Properties From
-            if props.transfer_from == "OBJECT":
-                self.setPlacementFrom( context.object )
-            elif props.transfer_from == "DATA":
-                self.setPlacementFrom( context.object.data )
-            elif props.transfer_from == "SCENE":
-                self.setPlacementFrom( context.scene )
-            elif props.transfer_from == "WORLD":
-                self.setPlacementFrom( context.scene.world )
-            # Edit Mode Bone Data
-            elif props.transfer_from == "POSE":
-                self.setPlacementFrom( context.active_pose_bone )
-            # Pose Mode Bone Data
-            elif props.transfer_from == "BONE":
-                self.setPlacementFrom( context.active_bone )
-            #Will be set to "CUSTOM"
-            else:
-                self.setPlacementFrom( self.evalSafety(props.custom_path) )
-            
-            # Where to Transfer Custom Properties To
-            if props.transfer_to == "OBJECT":
-                self.setPlacementTo( context.object )
-            elif props.transfer_to == "DATA":
-                self.setPlacementTo( context.object.data )
-            elif props.transfer_to == "SCENE":
-                self.setPlacementTo( context.scene )
-            elif props.transfer_to == "WORLD":
-                self.setPlacementTo( context.scene.world )
-            # Edit Mode Bone Data
-            elif props.transfer_to == "POSE":
-                self.setPlacementTo( context.selected_pose_bones )
-            # Pose Mode Bone Data
-            elif props.transfer_to == "BONE":
-                self.setPlacementTo( context.selected_bones )
-            #Will be set to "CUSTOM"
-            else:
-                self.setPlacementTo( self.evalSafety(props.custom_path) )
-                
-            #This is for Mode Sensitive Stuff
-            """
-            bpy.context.selected_pose_bones[0].bone
-            Results bpy.data.armatures['Armature'].bones["Bone"]
+        #if len(props.collection_names) > 0:
+        def getPoseBones(object):
+            if context.object.type == "ARMATURE":
+                bones = []
 
-            bpy.context.selected_pose_bones[0]
-            Results bpy.data.objects['Armature'].pose.bones["Bone"]
-            """
-                
-            if self.getPlacementFrom() != None and self.getPlacementTo() != None:
-                if self.getPlacementFrom() != self.getPlacementTo():
-                    
-                    exclude_from = ["_RNA_UI", "cycles_visibility", "cycles"]
-                    
-                    properties_from = self.getPlacementFrom().keys()
-                    
-                    # Removes exclude_from string from properties_from
-                    for i in properties_from:
-                        if i in exclude_from:
-                            properties_from.remove(i)
-                    
-                    def generateProperties(placement_from, placement_to):
-                        #placement_from = object
-                        #placement_to = object
-                        
-                        count_new = 0
-                        count_updated = 0
+                for i in object.pose.bones:
+                    if i.bone.select == True:
+                        bones.append(i.bone)
+                    #object.pose.bones[0].bone.select
 
-                        for i in enumerate(properties_from):
-                            # If prop already existed
-                            if i[1] in placement_to == True:
-                                # If replacing existing is on
-                                if props.replace_existing_props == True:
-                                    del placement_to[ i[1] ]
-                                    placement_to[ i[1] ] = placement_from[ i[1] ]
-                                    count_updated += 1
-                                else:
-                                    continue
-                            else:   
-                                placement_to[ i[1] ] = placement_from[ i[1] ]
-                                
-                                count_new += 1
-                                
-                            placement_to["_RNA_UI"].clear()
-
-                        self.addCount(count_new, count_updated)
-
-                        #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
-                        placement_from["_RNA_UI"].clear()
-                        return None
-                        
-                    def getUniqueObjectData(objects):
-                        models = {objects.data for ob in objects}
-                        return list(models)
-                        
-                    if props.transfer_from == "OBJECT":
-                    
-                        selected_objects = context.selected_objects
-                        
-                        # Remove Active object from Selected Object list
-                        if props.transfer_to == "OBJECT":
-                            if self.getPlacementFrom() in selected_objects:
-                                selected_objects.remove(self.getPlacementFrom() )
-                            
-                    elif props.transfer_from == "DATA":
-                    
-                        selected_objects = getUniqueObjectData(context.selected_objects )
-                        
-                        # Remove Active object from Selected Object list
-                        if props.transfer_to == "OBJECT":
-                            if self.getPlacementFrom().data in selected_objects:
-                                selected_objects.remove(self.getPlacementFrom().data)
-                        elif props.transfer_to == "DATA":
-                            if self.getPlacementFrom() in selected_objects:
-                                selected_objects.remove(self.getPlacementFrom() )
-
-                    elif props.transfer_from == "POSE":
-                        selected_objects = context.selected_pose_bones
-
-                        # Remove Active object from Selected Object list
-                        if props.transfer_to == "POSE":
-                            if self.getPlacementFrom() in selected_objects:
-                                selected_objects.remove(self.getPlacementFrom())
-
-                    elif props.transfer_from == "BONE":
-                        selected_objects = context.selected_bones
-
-                        # Remove Active object from Selected Object list
-                        if props.transfer_to == "BONE":
-                            if self.getPlacementFrom() in selected_objects:
-                                selected_objects.remove(self.getPlacementFrom())
-
-                    else:
-                        selected_objects = self.getPlacementTo()
-
-                    if len(selected_objects) > 0:
-                        for i in selected_objects:
-                            generateProperties(self.getPlacementFrom(), i)
-
-                        reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
-                    else:
-                        reportString = "Objects were the same"
-                    
-                    self.resetCount()
+                if len(bones) > 0:
+                    return bones
                 else:
-                    reportString = "Transferring From and To are the same location."
-                
-            # Just error statements
+                    return None
             else:
-                #has_active_ob = bpy.context.active_object != None
-                #has_selected_ob = len(bpy.context.selected_objects) > len(bpy.context.active_object)
-                
-                if self.getPlacementFrom() == None:
-                    if props.transfer_to == "OBJECT":
-                        reportString = "No Active Objects"
-                    elif props.transfer_to == "DATA":
-                        reportString = "No Active Object"
-                    elif props.transfer_to == "SCENE":
-                        reportString = "No Scene Found"
-                    elif props.transfer_to == "WORLD":
-                        reportString = "No World Found"
-                    elif props.transfer_to == "POSE":
-                        reportString = "No Pose Bone Found"
-                    elif props.transfer_to == "BONE":
-                        reportString = "No Armature Bone Found"
-                    else:
-                        reportString = "Couldn\'t evaluate custom path. Check Console."
-                elif self.getPlacementTo() == None:
-                    if props.transfer_to == "OBJECT":
-                        reportString = "No Selected Object"
-                    elif props.transfer_to == "DATA":
-                        reportString = "No Selected Object"
-                    elif props.transfer_to == "SCENE":
-                        reportString = "No Scene Found"
-                    elif props.transfer_to == "WORLD":
-                        reportString = "No World Found"
-                    elif props.transfer_to == "POSE":
-                        reportString = "No Pose Bone Found"
-                    elif props.transfer_to == "BONE":
-                        reportString = "No Armature Bone Found"
-                    else:
-                        reportString = "Couldn\'t evaluate custom path. Check Console."
+                return None
+
+        def getEditBones(object):
+            if context.object.type == "ARMATURE":
+                bones = []
+
+                for i in object.pose.bones:
+                    if i.bone.select == True:
+                        bones.append(i.bone)
+                    #object.pose.bones[0].bone.select
+
+                if len(bones) > 0:
+                    return bones
+                else:
+                    return None
+            else:
+                return None
+
+        # Where to Transfer Custom Properties From
+        if props.transfer_from == "OBJECT":
+            self.setPlacementFrom( context.object )
+        elif props.transfer_from == "DATA":
+            self.setPlacementFrom( context.object.data )
+        elif props.transfer_from == "SCENE":
+            self.setPlacementFrom( context.scene )
+        elif props.transfer_from == "WORLD":
+            self.setPlacementFrom( context.scene.world )
+        # Edit Mode Bone Data
+        elif props.transfer_from == "POSE":
+            self.setPlacementFrom( context.active_pose_bone )
+        # Pose Mode Bone Data
+        elif props.transfer_from == "BONE":
+            self.setPlacementFrom( context.active_bone )
+        #Will be set to "CUSTOM"
         else:
-            reportString = "No Property Names to generate from"
+            self.setPlacementFrom( self.evalSafety(props.custom_path) )
+        
+        # Where to Transfer Custom Properties To
+        if props.transfer_to == "OBJECT":
+            self.setPlacementTo( context.object )
+        elif props.transfer_to == "DATA":
+            self.setPlacementTo( context.object.data )
+        elif props.transfer_to == "SCENE":
+            self.setPlacementTo( context.scene )
+        elif props.transfer_to == "WORLD":
+            self.setPlacementTo( context.scene.world )
+        # Edit Mode Bone Data
+        elif props.transfer_to == "POSE":
+            self.setPlacementTo( context.selected_pose_bones )
+        # Pose Mode Bone Data
+        elif props.transfer_to == "BONE":
+            self.setPlacementTo( context.selected_bones )
+        # Will be set to "CUSTOM"
+        else:
+            self.setPlacementTo( self.evalSafety(props.custom_path) )
+            
+        #This is for Mode Sensitive Stuff
+        """
+        bpy.context.selected_pose_bones[0].bone
+        Results bpy.data.armatures['Armature'].bones["Bone"]
+
+        bpy.context.selected_pose_bones[0]
+        Results bpy.data.objects['Armature'].pose.bones["Bone"]
+        """
+            
+        if self.getPlacementFrom() != None and self.getPlacementTo() != None:
+            if self.getPlacementFrom() != self.getPlacementTo():
+                
+                exclude_from = ["_RNA_UI", "cycles_visibility", "cycles"]
+                
+                properties_from = self.getPlacementFrom().keys()
+                
+                # Removes exclude_from string from properties_from
+                for i in properties_from:
+                    if i in exclude_from:
+                        properties_from.remove(i)
+                
+                def generateProperties(placement_from, placement_to):
+                    #placement_from = object
+                    #placement_to = object
+                    
+                    count_new = 0
+                    count_updated = 0
+
+                    for i in enumerate(properties_from):
+                        # If prop already existed
+                        if i[1] in placement_to == True:
+                            # If replacing existing is on
+                            if props.replace_existing_props == True:
+                                del placement_to[ i[1] ]
+                                placement_to[ i[1] ] = placement_from[ i[1] ]
+                                count_updated += 1
+                            else:
+                                continue
+                        else:   
+                            placement_to[ i[1] ] = placement_from[ i[1] ]
+                            
+                            count_new += 1
+
+                    #Clears the "_RNA_UI" dict from placement_to
+                    placement_to["_RNA_UI"].clear()
+
+                    self.addCount(count_new, count_updated)
+
+                    return None
+                    
+                def getUniqueObjectData(objects):
+                    models = {objects.data for ob in objects}
+                    return list(models)
+                    
+                placement_from = self.getPlacementFrom()
+                placement_to = self.getPlacementTo()
+
+                if props.transfer_from == "OBJECT":
+                
+                    selected_objects = context.selected_objects
+                    
+                    # Remove Active object from Selected Object list
+                    if props.transfer_to == "OBJECT":
+                        if placement_from in selected_objects:
+                            selected_objects.remove(placement_from )
+                        
+                elif props.transfer_from == "DATA":
+                
+                    selected_objects = getUniqueObjectData(context.selected_objects )
+                    
+                    # Remove Active object from Selected Object list
+                    if props.transfer_to == "OBJECT":
+                        if placement_from.data in selected_objects:
+                            selected_objects.remove(placement_from.data )
+                    elif props.transfer_to == "DATA":
+                        if placement_from in selected_objects:
+                            selected_objects.remove(placement_from )
+
+                elif props.transfer_from == "POSE":
+                    selected_objects = context.selected_pose_bones
+
+                    # Remove Active object from Selected Object list
+                    if props.transfer_to == "POSE":
+                        if placement_from in selected_objects:
+                            selected_objects.remove(placement_from )
+
+                elif props.transfer_from == "BONE":
+                    selected_objects = context.selected_bones
+
+                    # Remove Active object from Selected Object list
+                    if props.transfer_to == "BONE":
+                        if placement_from in selected_objects:
+                            selected_objects.remove(placement_from )
+
+                else:
+                    selected_objects = placement_to
+
+                if len(selected_objects) > 0:
+                    for i in selected_objects:
+                        generateProperties(placement_from, i)
+
+                    #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
+                    placement_from["_RNA_UI"].clear()
+
+                    reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
+                else:
+                    reportString = "Objects were the same"
+                
+                self.resetCount()
+            else:
+                reportString = "Transferring From and To are the same location."
+            
+        # Just error statements
+        else:
+            #has_active_ob = bpy.context.active_object != None
+            #has_selected_ob = len(bpy.context.selected_objects) > len(bpy.context.active_object)
+            
+            if self.getPlacementFrom() == None:
+                if props.transfer_from == "OBJECT":
+                    reportString = "No Active Objects"
+                elif props.transfer_from == "DATA":
+                    reportString = "No Active Object"
+                elif props.transfer_from == "SCENE":
+                    reportString = "No Scene Found"
+                elif props.transfer_from == "WORLD":
+                    reportString = "No World Found"
+                elif props.transfer_from == "POSE":
+                    reportString = "No Pose Bone Found"
+                elif props.transfer_from == "BONE":
+                    reportString = "No Armature Bone Found"
+                else:
+                    reportString = "Couldn\'t evaluate custom path. Check Console."
+            elif self.getPlacementTo() == None:
+                if props.transfer_to == "OBJECT":
+                    reportString = "No Selected Object"
+                elif props.transfer_to == "DATA":
+                    reportString = "No Selected Object"
+                elif props.transfer_to == "SCENE":
+                    reportString = "No Scene Found"
+                elif props.transfer_to == "WORLD":
+                    reportString = "No World Found"
+                elif props.transfer_to == "POSE":
+                    reportString = "No Pose Bone Found"
+                elif props.transfer_to == "BONE":
+                    reportString = "No Armature Bone Found"
+                else:
+                    reportString = "Couldn\'t evaluate custom path. Check Console."
             
         self.report({'INFO'}, reportString)
         
