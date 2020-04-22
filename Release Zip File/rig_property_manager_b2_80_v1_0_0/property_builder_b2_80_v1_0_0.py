@@ -1007,42 +1007,42 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                 placement_from = self.getPlacementFrom()
                 placement_to = self.getPlacementTo()
 
-                if props.transfer_from == "OBJECT":
+                if props.transfer_to == "OBJECT":
                 
                     selected_objects = context.selected_objects
                     
                     # Remove Active object from Selected Object list
-                    if props.transfer_to == "OBJECT":
+                    if props.transfer_from == "OBJECT":
                         if placement_from in selected_objects:
                             selected_objects.remove(placement_from )
                         
-                elif props.transfer_from == "DATA":
+                elif props.transfer_to == "DATA":
                 
                     selected_objects = getUniqueObjectData(context.selected_objects )
                     
                     # Remove Active object from Selected Object list
-                    if props.transfer_to == "OBJECT":
+                    if props.transfer_from == "OBJECT":
                         if placement_from.data in selected_objects:
                             selected_objects.remove(placement_from.data )
-                    elif props.transfer_to == "DATA":
+                    elif props.transfer_from == "DATA":
                         if placement_from in selected_objects:
                             selected_objects.remove(placement_from )
 
-                elif props.transfer_from == "POSE":
+                elif props.transfer_to == "POSE":
                     selected_objects = context.selected_pose_bones
 
                     # Remove Active object from Selected Object list
-                    if props.transfer_to == "POSE":
+                    if props.transfer_from == "POSE":
                         if placement_from in selected_objects:
                             selected_objects.remove(placement_from )
 
-                elif props.transfer_from == "BONE":
+                elif props.transfer_to == "BONE":
                     #selected_objects = context.selected_bones
                     selected_objects = getUniqueBones(context.selected_pose_bones )
                     print(selected_objects)
-                    
+
                     # Remove Active object from Selected Object list
-                    if props.transfer_to == "BONE":
+                    if props.transfer_from == "BONE":
                         if placement_from in selected_objects:
                             selected_objects.remove(placement_from )
 
