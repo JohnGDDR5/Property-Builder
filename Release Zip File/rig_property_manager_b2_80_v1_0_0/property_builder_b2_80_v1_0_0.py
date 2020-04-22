@@ -885,29 +885,55 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
             self.setPlacementFrom( context.scene.world )
         # Edit Mode Bone Data
         elif props.transfer_from == "POSE":
-            self.setPlacementFrom( context.active_pose_bone )
+            if context.active_object.mode == "POSE":
+                self.setPlacementFrom( context.active_pose_bone )
+            else:
+                pass
         # Pose Mode Bone Data
         elif props.transfer_from == "BONE":
-            self.setPlacementFrom( context.active_bone )
+            if context.active_object.mode == "POSE":
+                self.setPlacementFrom( context.active_pose_bone.bone )
+            else:
+                pass
         #Will be set to "CUSTOM"
         else:
             self.setPlacementFrom( self.evalSafety(props.custom_path) )
         
         # Where to Transfer Custom Properties To
         if props.transfer_to == "OBJECT":
-            self.setPlacementTo( context.object )
+            if len(context.selected_objects) > 1:
+                self.setPlacementTo( context.selected_objects )
+            else:
+                self.setPlacementTo( context.object )
+            
         elif props.transfer_to == "DATA":
-            self.setPlacementTo( context.object.data )
+            if len(context.selected_objects) > 1:
+                # Just use selected_objects here
+                self.setPlacementTo( context.selected_objects )
+            else:
+                self.setPlacementTo( context.object.data )
+            
         elif props.transfer_to == "SCENE":
             self.setPlacementTo( context.scene )
         elif props.transfer_to == "WORLD":
             self.setPlacementTo( context.scene.world )
         # Edit Mode Bone Data
         elif props.transfer_to == "POSE":
-            self.setPlacementTo( context.selected_pose_bones )
+            if context.active_object.mode == "POSE":
+                selected_bones = context.selected_pose_bones
+                #checks if there is more than one active bone
+                if len(selected_bones) > 1:
+                    self.setPlacementTo( selected_bones )
+                else:
+                    self.setPlacementTo( context.active_pose_bone)
+            else:
+                pass
         # Pose Mode Bone Data
         elif props.transfer_to == "BONE":
-            self.setPlacementTo( context.selected_bones )
+            if context.active_object.mode == "POSE":
+                self.setPlacementTo( context.selected_pose_bones )
+            else:
+                pass
         # Will be set to "CUSTOM"
         else:
             self.setPlacementTo( self.evalSafety(props.custom_path) )
@@ -934,37 +960,49 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                         properties_from.remove(i)
                 
                 def generateProperties(placement_from, placement_to):
-                    #placement_from = object
-                    #placement_to = object
-                    
                     count_new = 0
                     count_updated = 0
 
-                    for i in enumerate(properties_from):
-                        # If prop already existed
-                        if i[1] in placement_to == True:
-                            # If replacing existing is on
-                            if props.replace_existing_props == True:
-                                del placement_to[ i[1] ]
+                    if len(properties_from) > 0:
+                        for i in enumerate(properties_from):
+                            print(placement_to.keys())
+                            print( str(placement_to)  + ": " + i[1] + ", " + str(i[1] in placement_to) )
+                            # If prop already existed
+                            if (i[1] in placement_to) == True:
+                                print("MLg: 0")
+                                # If replacing existing is on
+                                if props.replace_existing_props == True:
+                                    print("MLg: 1")
+                                    del placement_to[ i[1] ]
+                                    placement_to[ i[1] ] = placement_from[ i[1] ]
+                                    count_updated += 1
+                                else:
+                                    continue
+                            else:   
+                                print("MLg: -1")
                                 placement_to[ i[1] ] = placement_from[ i[1] ]
-                                count_updated += 1
-                            else:
-                                continue
-                        else:   
-                            placement_to[ i[1] ] = placement_from[ i[1] ]
-                            
-                            count_new += 1
+                                
+                                count_new += 1
 
-                    #Clears the "_RNA_UI" dict from placement_to
-                    placement_to["_RNA_UI"].clear()
+                        #Clears the "_RNA_UI" dict from placement_to
+                        if "_RNA_UI" in placement_to:
+                            placement_to["_RNA_UI"].clear()
 
                     self.addCount(count_new, count_updated)
 
                     return None
                     
                 def getUniqueObjectData(objects):
-                    models = {objects.data for ob in objects}
+                    models = {ob.data for ob in objects}
                     return list(models)
+                
+                #Returns unique Edit Mode bones
+                def getUniqueBones(pose_bones):
+                    unique_bones = set()
+                    for ob in pose_bones:
+                        unique_bones.add(ob.bone )
+                    #models = {ob.data for ob in objects}
+                    return list(unique_bones)
                     
                 placement_from = self.getPlacementFrom()
                 placement_to = self.getPlacementTo()
@@ -999,8 +1037,10 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                             selected_objects.remove(placement_from )
 
                 elif props.transfer_from == "BONE":
-                    selected_objects = context.selected_bones
-
+                    #selected_objects = context.selected_bones
+                    selected_objects = getUniqueBones(context.selected_pose_bones )
+                    print(selected_objects)
+                    
                     # Remove Active object from Selected Object list
                     if props.transfer_to == "BONE":
                         if placement_from in selected_objects:
@@ -1014,7 +1054,8 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                         generateProperties(placement_from, i)
 
                     #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
-                    placement_from["_RNA_UI"].clear()
+                    if "_RNA_UI" in placement_from:
+                        placement_from["_RNA_UI"].clear()
 
                     reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
                 else:
@@ -1039,7 +1080,11 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                 elif props.transfer_from == "WORLD":
                     reportString = "No World Found"
                 elif props.transfer_from == "POSE":
-                    reportString = "No Pose Bone Found"
+                    ## If armature isn't in Pose Mode
+                    if context.active_object.mode != "POSE" and context.object.type == "ARMATURE":
+                        reportString = "Active Armature not in Pose Mode"
+                    else:
+                        reportString = "No Active Pose Bone Found"
                 elif props.transfer_from == "BONE":
                     reportString = "No Armature Bone Found"
                 else:
@@ -1054,7 +1099,11 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                 elif props.transfer_to == "WORLD":
                     reportString = "No World Found"
                 elif props.transfer_to == "POSE":
-                    reportString = "No Pose Bone Found"
+                    ## If armature isn't in Pose Mode
+                    if context.active_object.mode != "POSE" and context.object.type == "ARMATURE":
+                        reportString = "Active Armature not in Pose Mode"
+                    else:
+                        reportString = "No Active Pose Bone Found"
                 elif props.transfer_to == "BONE":
                     reportString = "No Armature Bone Found"
                 else:
