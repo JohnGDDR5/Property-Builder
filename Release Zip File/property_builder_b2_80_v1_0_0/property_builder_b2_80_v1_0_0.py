@@ -612,26 +612,45 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
 
                                     count_updated += 1
                                 
+                                if "_RNA_UI" not in placement:
+                                    placement["_RNA_UI"] = {}
+
                                 # Commented this out, I think it was for debugging, but preety sure it won't do anything
-                                """
+                                #"""
                                 #class 'IDPropertyGroup' is for Custom Properties that are dictionaries
                                 if placement[j].__class__.__name__ != 'IDPropertyGroup':
-                                    new_dict = {j: {} }
+                                    #new_dict = {j: {} }
+                                    new_dict = {}
                                     
                                     # This is where all the generated attributes are placed to be created with "_RNA_UI"
                                     for k in attributes:
-                                        new_dict[j][k] = getattr(i[1], k)
+                                        #new_dict[j][k] = getattr(i[1], k)
+                                        new_dict[k] = getattr(i[1], k)
+                                        #new_dict[k] = self.valueConvert( getattr(i[1], k) )
+                                        print(k + ": " + str(getattr(i[1], k) ) + ": " + str(new_dict[k] ) + ": " + str(i[1] ) )
                                         
-                                    placement["_RNA_UI"] = new_dict
+                                    #print(new_dict.items() )
+                                    #print(new_dict.__class__ )
+                                    #placement["_RNA_UI"] = new_dict
+                                    placement["_RNA_UI"][j] = new_dict
+                                    #print(placement["_RNA_UI"].to_dict() )
+
+                                    #placement["_RNA_UI"].clear()
                                 else:
                                     ##print("Was a dictionary: %s" % (j) )
                                     pass
-                                """
+                                #"""
 
                     self.addCount(count_new, count_updated)
-
+                    #print("RNA UI" + str("_RNA_UI" in placement) )
                     #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
-                    placement["_RNA_UI"].clear()
+                    """
+                    if "_RNA_UI" in placement:
+                        #placement["_RNA_UI"].clear()
+                        #del placement["_RNA_UI"]
+                        pass
+                    """
+                        
                     return None
                     
                 if self.type == "DEFAULT":
@@ -836,39 +855,6 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
             "use_soft_limits",
             ]
         
-        #if len(props.collection_names) > 0:
-        def getPoseBones(object):
-            if context.object.type == "ARMATURE":
-                bones = []
-
-                for i in object.pose.bones:
-                    if i.bone.select == True:
-                        bones.append(i.bone)
-                    #object.pose.bones[0].bone.select
-
-                if len(bones) > 0:
-                    return bones
-                else:
-                    return None
-            else:
-                return None
-
-        def getEditBones(object):
-            if context.object.type == "ARMATURE":
-                bones = []
-
-                for i in object.pose.bones:
-                    if i.bone.select == True:
-                        bones.append(i.bone)
-                    #object.pose.bones[0].bone.select
-
-                if len(bones) > 0:
-                    return bones
-                else:
-                    return None
-            else:
-                return None
-
         # Where to Transfer Custom Properties From
         if props.transfer_from == "OBJECT":
             self.setPlacementFrom( context.object )
@@ -978,8 +964,10 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                                 count_new += 1
 
                         #Clears the "_RNA_UI" dict from placement_to
+                        """
                         if "_RNA_UI" in placement_to:
                             placement_to["_RNA_UI"].clear()
+                            """
 
                     self.addCount(count_new, count_updated)
 
@@ -1021,10 +1009,14 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                     # Remove Active object from Selected Object list
                     if props.transfer_from == "OBJECT":
                         if placement_from.data in selected_objects:
-                            selected_objects.remove(placement_from.data )
+                            #Should allow to include itself if it is the only object selected
+                            if len(context.selected_objects) > 1:
+                                selected_objects.remove(placement_from.data )
                     elif props.transfer_from == "DATA":
                         if placement_from in selected_objects:
-                            selected_objects.remove(placement_from )
+                            #Should allow to include itself if it is the only object selected
+                            if len(context.selected_objects) > 1:
+                                selected_objects.remove(placement_from )
 
                     # If its Pose or Bone, you need to explicity state the active object, since its a bone in transfer_from
                     if props.transfer_from == "POSE" or props.transfer_from == "BONE":
@@ -1037,8 +1029,10 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
 
                     # Remove Active object from Selected Object list
                     if props.transfer_from == "POSE":
-                        if placement_from in selected_objects:
-                            selected_objects.remove(placement_from )
+                        #Should allow itself to be selected or else remove it from list
+                        if len(selected_objects) > 1:
+                            if placement_from in selected_objects:
+                                selected_objects.remove(placement_from )
 
                 elif props.transfer_to == "BONE":
                     #selected_objects = context.selected_bones
@@ -1047,8 +1041,13 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
 
                     # Remove Active object from Selected Object list
                     if props.transfer_from == "BONE":
+
                         if placement_from in selected_objects:
-                            selected_objects.remove(placement_from )
+                            #Should allow itself to be selected or else remove it from list
+                            if len(selected_objects) > 1:
+                                selected_objects.remove(placement_from )
+                            else:
+                                selected_objects.clear()
 
                 else:
                     selected_objects = placement_to
@@ -1063,18 +1062,29 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                             generateProperties(placement_from, i)
 
                         #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
+                        """
                         if "_RNA_UI" in placement_from:
                             placement_from["_RNA_UI"].clear()
+                            """
 
                         reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
                     else:
-                        reportString = "Objects were the same"
+                        #reportString = "Objects were the same"
+                        """
+                        print("Not mlg: " + str(selected_objects) )
+                        generateProperties(placement_from, selected_objects)
+
+                        reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
+                        """
+                        reportString = "Nothing Added"
                 else:
                     generateProperties(placement_from, selected_objects)
 
                     #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
+                    """
                     if "_RNA_UI" in placement_from:
                         placement_from["_RNA_UI"].clear()
+                        """
 
                     reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
                 
@@ -1103,7 +1113,7 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                     else:
                         reportString = "No Active Pose Bone Found"
                 elif props.transfer_from == "BONE":
-                    reportString = "No Armature Bone Found from"
+                    reportString = "No Armature Bone Found from. Select Bone in Pose Mode"
                 else:
                     reportString = "Couldn\'t evaluate custom path. Check Console."
             elif self.getPlacementTo() == None:
@@ -1122,7 +1132,7 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                     else:
                         reportString = "No Active Pose Bone Found"
                 elif props.transfer_to == "BONE":
-                    reportString = "No Armature Bone Found to"
+                    reportString = "No Armature Bone Found to. Select Bones in Pose Mode"
                 else:
                     reportString = "Couldn\'t evaluate custom path. Check Console."
             

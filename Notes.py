@@ -1,5 +1,19 @@
 
 
+# FOUND THE SOLUTION
+bpy.context.object["_RNA_UI"]["oof.bruh"] = {"min": -1.1, "max": 1.1, "soft_min": 0.5, "use_soft_limits": False}
+
+## Notes on how _RNA_UI works in the Blender Interface.
+
+So basically, the "_RNA_UI" dictionary is integral in storing the actual values and settings to make custom properties.
+
+When you add a custom property using the "ADD" button, its settings are stored in the "_RNA_UI" dictionary.
+When you add a custom property in the console, it won't automatically store the settings in the "_RNA_UI" dictionary, unless you change and update the settings with the "EDIT" button
+
+If you .clear() or delete the "_RNA_UI" dictionary, all of the custom properties will be changed to use the top most Custom Property setting. I have no clue why it does this, and that may need to be changed/updated.
+
+So, dont delete the "_RNA_UI" dictionary, or else it will mess up all of the Custom Propery values.
+
 bpy.types.RIG_PROP_MAN_OT_general_ui_ops.mro()
 Returns the class and subclasses of the class
 [<class '__main__.RIG_PROP_MAN_OT_general_ui_ops'>, <class 'bpy_types.Operator'>, <class 'bpy_struct'>, <class '__main__.customMethods'>, <class 'object'>]
