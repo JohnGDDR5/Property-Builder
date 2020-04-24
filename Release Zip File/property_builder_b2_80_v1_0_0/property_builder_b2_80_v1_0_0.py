@@ -65,7 +65,7 @@ class PROP_BUILDER_props(bpy.types.PropertyGroup):
     custom_prop_placement: bpy.props.EnumProperty(name="Custom Property Placement"
         , items= [
         ("OBJECT", "Object", listDesc[0], "OBJECT_DATA", 0),
-        ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
+        ("DATA", "Object Data", listDesc[1], "MESH_DATA", 1),
         ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
         ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
         ("POSE", "Pose Bone", listDesc[4], "ARMATURE_DATA", 4),
@@ -80,7 +80,7 @@ class PROP_BUILDER_props(bpy.types.PropertyGroup):
     transfer_from: bpy.props.EnumProperty(name="Transfer Custom Properties From"
         , items= [
         ("OBJECT", "Object", listDesc[0], "OBJECT_DATA", 0),
-        ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
+        ("DATA", "Object Data", listDesc[1], "MESH_DATA", 1),
         ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
         ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
         ("POSE", "Pose Bone", listDesc[4], "ARMATURE_DATA", 4),
@@ -92,12 +92,12 @@ class PROP_BUILDER_props(bpy.types.PropertyGroup):
     ## Where to Transfer Custom Properties From
     transfer_to: bpy.props.EnumProperty(name="Transfer Custom Properties To"
         , items= [
-        ("OBJECT", "Object", listDesc[0], "OBJECT_DATA", 0),
-        ("DATA", "Data", listDesc[1], "MESH_DATA", 1),
+        ("OBJECT", "Objects", listDesc[0], "OBJECT_DATA", 0),
+        ("DATA", "Objects Data", listDesc[1], "MESH_DATA", 1),
         ("SCENE", "Scene", listDesc[2], "SCENE_DATA", 2),
         ("WORLD", "World", listDesc[3], "WORLD_DATA", 3),
-        ("POSE", "Pose Bone", listDesc[4], "ARMATURE_DATA", 4),
-        ("BONE", "Armature Bone", listDesc[5], "BONE_DATA", 5),
+        ("POSE", "Pose Bones", listDesc[4], "ARMATURE_DATA", 4),
+        ("BONE", "Armature Bones", listDesc[5], "BONE_DATA", 5),
         ("CUSTOM", "Custom Path", listDesc[6], "FILE_TEXT", 6),
         ]
         , description="Where to Duplicate Custom Properties to", default="OBJECT")
@@ -139,9 +139,6 @@ class UI_Functions:
             else:
                 internal_use_ignore.append(i)
                 
-        ##print("internal_use_ignore: %s" % (str(internal_use_ignore) ) )
-        ##print("attributes: %s" % (str(attributes) ) )
-        
         for i in attributes:
             if hasattr(object_duplicate, i):
                 original_attr = getattr(object, i)
@@ -152,7 +149,7 @@ class UI_Functions:
         # Prints the missing attributes for debugging
         if len(missing) > 0:
             class_name = object_duplicate.__class__.__name__
-            print("%s missing %d attributes: %s" % (class_name, len(missing), str(missing) ) )
+            # print("%s missing %d attributes: %s" % (class_name, len(missing), str(missing) ) )
         
     
     @staticmethod
@@ -162,7 +159,7 @@ class UI_Functions:
         
         # gets the last index of list
         list_length = len(collection)-1
-        # print("UI_Index[1]: %d" % (UI_Index) )
+
         # Add new item to collection
         if type == "ADD":
             collection.add()
@@ -198,9 +195,7 @@ class UI_Functions:
         elif type == "CLEAR":
             collection.clear()
             UI_Index = 0
-                
-            
-        ##print("UI_Functions: { type: %s, UI_Index: %d }" % (type, UI_Index) )
+
         return int(UI_Index)
 
 #Returns re.Pattern Object, precompiled
@@ -216,8 +211,6 @@ def regexPattern():
 #Requires a patternObject, so it won't have to recompile it
 def flipDirection(string, patternObject):
     #Will return "l" or "r"
-    #print("getDirection(): %s" % (string) )
-    #p = regexPattern()
     p = patternObject
 
     match = p.search(string)
@@ -244,16 +237,16 @@ def flipDirection(string, patternObject):
         #single letter or whole word
         if wasSingle == True:
             stringNew = stringNew[0]
-                
-        print("getDirection(): %s, %s" % (matchString, stringNew) )
+        # This is for Debugging    
+        # print("getDirection(): %s, %s" % (matchString, stringNew) )
 
-        #Replaces match section of String with the flipped one
+        # Replaces match section of String with the flipped one
         string = string[:span[0]] + stringNew + string[span[1]:]
 
         return string
     else:
-        print("getDirection(): Match Fail for %s" % (string) )
-        #return ""
+        # print("getDirection(): Match Fail for %s" % (string) )
+        # return ""
         return None
     
 
@@ -332,7 +325,6 @@ class PROP_BUILDER_OT_general_ui_ops(bpy.types.Operator, customMethods):
         # Resets default settings
         self.resetSelf(self)
         
-        ##print(reportString)
         self.report({'INFO'}, reportString)
         
         return {'FINISHED'}
@@ -529,13 +521,14 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
             
             if hasattr(object, "bl_rna") == True:
                 if getattr(object.bl_rna, "__module__") in should_have:
-                    print("Successful evaluation of path: \" %s \"" % (string) )
+                    # print("Successful evaluation of path: \" %s \"" % (string) )
                     pass
                 else:
                     object = None
-                    print("path \" %s \" isn\"t or already in \"__module__\" from \"bpy_types\" " % (string) )
+                    # print("path \" %s \" isn\"t or already in \"__module__\" from \"bpy_types\" " % (string) )
             else:
-                print("path \" %s \" can't be evaluated or already in \"bl_rna\" from \"bpy_types\" " % (string) )
+                # print("path \" %s \" can't be evaluated or already in \"bl_rna\" from \"bpy_types\" " % (string) )
+                pass
             
         return object
     
@@ -544,7 +537,6 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
         props = scene.PPBR_Props
         
         reportString = "Done"
-        print("OOF: -1")
         
         attributes = [
             "default",
@@ -588,7 +580,6 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                     
                     count_new = 0
                     count_updated = 0
-                    # print("MLG: " + str(PROP_BUILDER_OT_generate_custom_props.getPlacement()) )
                     placement = self.getPlacement()
                     
                     #Compiled re.Pattern object
@@ -600,6 +591,7 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                             # bpy.context.object["_RNA_UI"] = {"Bruh0": {"min": -1.5, "max": 1.5, "soft_min": 0.5, "use_soft_limits": True} }
                             name_with_prefix = str(i[1].prefix) + active_string.name
                             
+                            # Used to iterate over for the normal and flipped name
                             full_names = [name_with_prefix]
 
                             if props.generate_flipped == True:
@@ -617,9 +609,11 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                                 else:
                                     if props.replace_existing_props == True:
                                         placement[j] = self.valueConvert(i[1].value)
-                                        
-                                    # print("Attribute Exists: %s" % (j) )
+
                                     count_updated += 1
+                                
+                                # Commented this out, I think it was for debugging, but preety sure it won't do anything
+                                """
                                 #class 'IDPropertyGroup' is for Custom Properties that are dictionaries
                                 if placement[j].__class__.__name__ != 'IDPropertyGroup':
                                     new_dict = {j: {} }
@@ -632,6 +626,7 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                                 else:
                                     ##print("Was a dictionary: %s" % (j) )
                                     pass
+                                """
 
                     self.addCount(count_new, count_updated)
 
@@ -680,10 +675,10 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
 class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
     bl_idname = "prop_builder.transfer_custom_props"
     bl_label = "Transfer Custom Properties"
-    bl_description = "Bruh"
+    bl_description = "Copies All properties from an object to other objects"
     bl_options = {'UNDO',}
     type: bpy.props.StringProperty(default="DEFAULT")
-    index: bpy.props.IntProperty(default=0, min=0)
+    #index: bpy.props.IntProperty(default=0, min=0)
     
     # class variables to count how many new Custom Properties were made
     count_new = 0
@@ -696,7 +691,7 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
     @classmethod
     def resetDefaults(cls):
         cls.type = "DEFAULT"
-        cls.index = 0
+        #cls.index = 0
         return None
     
     @classmethod
@@ -814,13 +809,14 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
             
             if hasattr(object, "bl_rna") == True:
                 if getattr(object.bl_rna, "__module__") in should_have:
-                    print("Successful evaluation of path: \" %s \"" % (string) )
+                    # print("Successful evaluation of path: \" %s \"" % (string) )
                     pass
                 else:
                     object = None
-                    print("path \" %s \" isn\"t or already in \"__module__\" from \"bpy_types\" " % (string) )
+                    # print("path \" %s \" isn\"t or already in \"__module__\" from \"bpy_types\" " % (string) )
             else:
-                print("path \" %s \" can't be evaluated or already in \"bl_rna\" from \"bpy_types\" " % (string) )
+                # print("path \" %s \" can't be evaluated or already in \"bl_rna\" from \"bpy_types\" " % (string) )
+                pass
             
         return object
     
@@ -829,7 +825,6 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
         props = scene.PPBR_Props
         
         reportString = "Done"
-        print("OOF: -1")
         
         attributes = [
             "default",
@@ -965,21 +960,19 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
 
                     if len(properties_from) > 0:
                         for i in enumerate(properties_from):
-                            print(placement_to.keys())
-                            print( str(placement_to)  + ": " + i[1] + ", " + str(i[1] in placement_to) )
+
                             # If prop already existed
                             if (i[1] in placement_to) == True:
-                                print("MLg: 0")
+
                                 # If replacing existing is on
                                 if props.replace_existing_props == True:
-                                    print("MLg: 1")
+                                    
                                     del placement_to[ i[1] ]
                                     placement_to[ i[1] ] = placement_from[ i[1] ]
                                     count_updated += 1
                                 else:
                                     continue
-                            else:   
-                                print("MLg: -1")
+                            else:
                                 placement_to[ i[1] ] = placement_from[ i[1] ]
                                 
                                 count_new += 1
@@ -1015,6 +1008,11 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                     if props.transfer_from == "OBJECT":
                         if placement_from in selected_objects:
                             selected_objects.remove(placement_from )
+                    # If its Pose or Bone, you need to explicity state the active object, since its a bone in transfer_from
+                    if props.transfer_from == "POSE" or props.transfer_from == "BONE":
+                        if len(selected_objects) > 1:
+                            if context.active_object in selected_objects:
+                                selected_objects.remove(context.active_object )
                         
                 elif props.transfer_to == "DATA":
                 
@@ -1028,6 +1026,12 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                         if placement_from in selected_objects:
                             selected_objects.remove(placement_from )
 
+                    # If its Pose or Bone, you need to explicity state the active object, since its a bone in transfer_from
+                    if props.transfer_from == "POSE" or props.transfer_from == "BONE":
+                        if len(selected_objects) > 1:
+                            if context.active_object.data in selected_objects:
+                                selected_objects.remove(context.active_object.data )
+
                 elif props.transfer_to == "POSE":
                     selected_objects = context.selected_pose_bones
 
@@ -1039,7 +1043,7 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                 elif props.transfer_to == "BONE":
                     #selected_objects = context.selected_bones
                     selected_objects = getUniqueBones(context.selected_pose_bones )
-                    print(selected_objects)
+                    # print(selected_objects)
 
                     # Remove Active object from Selected Object list
                     if props.transfer_from == "BONE":
@@ -1049,17 +1053,30 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                 else:
                     selected_objects = placement_to
 
-                if len(selected_objects) > 0:
-                    for i in selected_objects:
-                        generateProperties(placement_from, i)
+                check_non_iterable = ["SCENE", "WORLD"]
+
+                ## Checks if selected_objects is iterable to prevent error
+                if str(props.transfer_to ) not in check_non_iterable:
+
+                    if len(selected_objects ) > 0:
+                        for i in selected_objects:
+                            generateProperties(placement_from, i)
+
+                        #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
+                        if "_RNA_UI" in placement_from:
+                            placement_from["_RNA_UI"].clear()
+
+                        reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
+                    else:
+                        reportString = "Objects were the same"
+                else:
+                    generateProperties(placement_from, selected_objects)
 
                     #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
                     if "_RNA_UI" in placement_from:
                         placement_from["_RNA_UI"].clear()
 
                     reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
-                else:
-                    reportString = "Objects were the same"
                 
                 self.resetCount()
             else:
@@ -1086,7 +1103,7 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                     else:
                         reportString = "No Active Pose Bone Found"
                 elif props.transfer_from == "BONE":
-                    reportString = "No Armature Bone Found"
+                    reportString = "No Armature Bone Found from"
                 else:
                     reportString = "Couldn\'t evaluate custom path. Check Console."
             elif self.getPlacementTo() == None:
@@ -1105,13 +1122,13 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                     else:
                         reportString = "No Active Pose Bone Found"
                 elif props.transfer_to == "BONE":
-                    reportString = "No Armature Bone Found"
+                    reportString = "No Armature Bone Found to"
                 else:
                     reportString = "Couldn\'t evaluate custom path. Check Console."
             
         self.report({'INFO'}, reportString)
         
-        self.type = "DEFAULT"
+        self.resetDefaults()
         
         return {'FINISHED'}
 
@@ -1224,7 +1241,7 @@ class PROP_BUILDER_MT_dropdown_menu_ui_properties(bpy.types.Menu, customMethods)
 class PROP_BUILDER_PT_transfer_props(bpy.types.Panel, customMethods):
     # A Custom Panel in Viewport
     bl_idname = "PROP_BUILDER_PT_transfer_props"
-    bl_label = "Property Transfer"
+    bl_label = "Transfer Properties"
     bl_space_type = "VIEW_3D"
     bl_region_type = 'UI'
     # bl_context = "output"
@@ -1243,9 +1260,10 @@ class PROP_BUILDER_PT_transfer_props(bpy.types.Panel, customMethods):
         col = layout.column()
         
         # Active Collection
+        """
         row = col.row(align=True)
         row.label(text="Transfer Properties:")
-        
+        """
         row = col.row(align=True)
         row.prop(props, "transfer_from", text="From", expand=False)
         
@@ -1253,7 +1271,7 @@ class PROP_BUILDER_PT_transfer_props(bpy.types.Panel, customMethods):
         row.prop(props, "transfer_to", text="To", expand=False)
         
         row = col.row(align=True)
-        row.operator("prop_builder.transfer_custom_props", text="Transfer", icon="TRIA_DOWN")
+        row.operator("prop_builder.transfer_custom_props", text="Transfer All Properties", icon="PASTEDOWN")
         
         # End of CustomPanel
 
@@ -1386,7 +1404,7 @@ class PROP_BUILDER_PT_custom_panel1(bpy.types.Panel, customMethods):
 
 # This is a subpanel
 class PROP_BUILDER_PT_property_editor(bpy.types.Panel, customMethods):
-    bl_label = "Property"
+    bl_label = "Active Property"
     bl_parent_id = "PROP_BUILDER_PT_custom_panel1"
     bl_space_type = "VIEW_3D"
     bl_region_type = 'UI'
@@ -1448,8 +1466,9 @@ class PROP_BUILDER_PT_property_editor(bpy.types.Panel, customMethods):
             
 # This is a subpanel
 class PROP_BUILDER_PT_options(bpy.types.Panel, customMethods):
+    bl_idname = "PROP_BUILDER_PT_options"
     bl_label = "Options"
-    bl_parent_id = "PROP_BUILDER_PT_custom_panel1"
+    #bl_parent_id = "PROP_BUILDER_PT_custom_panel1"
     bl_space_type = "VIEW_3D"
     bl_region_type = 'UI'
     # bl_context = "output"
@@ -1477,10 +1496,12 @@ class PROP_BUILDER_PT_options(bpy.types.Panel, customMethods):
         # row.label(text="Add Button to 3D Viewport Header?")
         row.prop(props, "generate_flipped", expand=True, text="Generate Flipped L/R")
         
-
+print("Addon Name OOF: %s" % (__name__))
+print("Addon Package OOF: %s" % (__package__))
 
 class PROP_BUILDER_preferences(bpy.types.AddonPreferences):
-    bl_idname = __name__
+    #bl_idname = __name__
+    bl_idname = __package__
     # here you define the addons customizable props
     ui_tab: bpy.props.EnumProperty(name="Enum", items= [("GENERAL", "General", "General Options"), ("ABOUT", "About", "About Author & Where to Support")], description="Backup Object UI Tabs", default="GENERAL")
     

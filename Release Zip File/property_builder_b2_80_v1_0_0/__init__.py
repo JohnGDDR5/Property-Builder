@@ -1,6 +1,6 @@
 bl_info = {
     "name": "Property Builder",
-    "description": "Workflow Addon for easily updating, creating and managing multiple custom properies for rigs. Made for riggers.",
+    "description": "Tools for easily generating, updating and transferring/copying custom properies for objects. Designed for riggers and scripters.",
     "author": "Juan Cardenas (JohnGDDR5)",
     "version": (1, 0, 0), 
     "blender": (2, 80, 0),
