@@ -626,31 +626,15 @@ class PROP_BUILDER_OT_generate_custom_props(bpy.types.Operator):
                                     for k in attributes:
                                         #new_dict[j][k] = getattr(i[1], k)
                                         new_dict[k] = getattr(i[1], k)
-                                        #new_dict[k] = self.valueConvert( getattr(i[1], k) )
-                                        print(k + ": " + str(getattr(i[1], k) ) + ": " + str(new_dict[k] ) + ": " + str(i[1] ) )
-                                        
-                                    #print(new_dict.items() )
-                                    #print(new_dict.__class__ )
-                                    #placement["_RNA_UI"] = new_dict
-                                    placement["_RNA_UI"][j] = new_dict
-                                    #print(placement["_RNA_UI"].to_dict() )
 
-                                    #placement["_RNA_UI"].clear()
+                                    placement["_RNA_UI"][j] = new_dict
                                 else:
                                     ##print("Was a dictionary: %s" % (j) )
                                     pass
                                 #"""
 
                     self.addCount(count_new, count_updated)
-                    #print("RNA UI" + str("_RNA_UI" in placement) )
-                    #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
-                    """
-                    if "_RNA_UI" in placement:
-                        #placement["_RNA_UI"].clear()
-                        #del placement["_RNA_UI"]
-                        pass
-                    """
-                        
+                    
                     return None
                     
                 if self.type == "DEFAULT":
@@ -963,12 +947,6 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                                 
                                 count_new += 1
 
-                        #Clears the "_RNA_UI" dict from placement_to
-                        """
-                        if "_RNA_UI" in placement_to:
-                            placement_to["_RNA_UI"].clear()
-                            """
-
                     self.addCount(count_new, count_updated)
 
                     return None
@@ -1061,30 +1039,11 @@ class PROP_BUILDER_OT_transfer_custom_props(bpy.types.Operator):
                         for i in selected_objects:
                             generateProperties(placement_from, i)
 
-                        #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
-                        """
-                        if "_RNA_UI" in placement_from:
-                            placement_from["_RNA_UI"].clear()
-                            """
-
                         reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
                     else:
-                        #reportString = "Objects were the same"
-                        """
-                        print("Not mlg: " + str(selected_objects) )
-                        generateProperties(placement_from, selected_objects)
-
-                        reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
-                        """
                         reportString = "Nothing Added"
                 else:
                     generateProperties(placement_from, selected_objects)
-
-                    #clears all the "_RNA_UI" dictionary, so it won't stay with the added values
-                    """
-                    if "_RNA_UI" in placement_from:
-                        placement_from["_RNA_UI"].clear()
-                        """
 
                     reportString = "Custom Props: Added New: %d; Updated Existing: %d" % (self.count_new, self.count_updated)
                 
@@ -1506,8 +1465,8 @@ class PROP_BUILDER_PT_options(bpy.types.Panel, customMethods):
         # row.label(text="Add Button to 3D Viewport Header?")
         row.prop(props, "generate_flipped", expand=True, text="Generate Flipped L/R")
         
-print("Addon Name OOF: %s" % (__name__))
-print("Addon Package OOF: %s" % (__package__))
+#print("Addon Name OOF: %s" % (__name__))
+#print("Addon Package OOF: %s" % (__package__))
 
 class PROP_BUILDER_preferences(bpy.types.AddonPreferences):
     #bl_idname = __name__
